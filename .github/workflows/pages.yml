@@ -26,10 +26,15 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: .flutter-version
+          # Pin SDK: unpinned stable (e.g. 3.44.x) breaks legacy web plugins
+          # (platformViewRegistry, google_fonts FontWeight const map, qr_code_scanner).
+          flutter-version: '3.24.3'
           cache: true
 
       - run: flutter pub get
+
+      - name: Verify Flutter SDK
+        run: flutter --version
 
       # Project pages are served under /<repo>/, so base-href must match.
       # API_BASE_URL and RAZORPAY_KEY_ID come from repo variables (Settings ->
