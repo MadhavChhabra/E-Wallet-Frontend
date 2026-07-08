@@ -1,8 +1,8 @@
-import 'package:flutter_ewallet/utils/shared_values.dart';
+import 'package:flutter_ewallet/utils/api_config.dart';
 
 class AuthService {
   
-  static const String baseUrl = SharedValues.baseUrl;
+  static String get baseUrl => ApiConfig.baseUrl;
   // static UserModel? _cachedUser; 
 
 

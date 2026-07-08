@@ -28,9 +28,12 @@ import 'package:flutter_ewallet/ui/pages/transfer/transfer_page.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_page.dart';
 import 'package:flutter_ewallet/ui/pages/BankAccount/add_account.dart';
 
+import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.init();
   runApp(const MyApp());
 }
 

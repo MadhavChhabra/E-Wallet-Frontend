@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
-import 'package:flutter_ewallet/utils/shared_values.dart';
+import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:http/http.dart' as http;
 
 /// Exchanges the stored refresh token for a fresh access token.
@@ -15,7 +15,7 @@ class RefreshTokenButton extends StatelessWidget {
 
   static Future<bool> getAccessToken() async {
     try {
-      final Uri uri = Uri.parse('${SharedValues.baseUrl}/auth/refresh-token');
+      final Uri uri = Uri.parse('${ApiConfig.baseUrl}/auth/refresh-token');
       final String? refreshToken = await SharedUser().getRefreshToken();
 
       if (refreshToken == null) {

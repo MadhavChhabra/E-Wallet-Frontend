@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_ewallet/utils/RefreshToken.dart';
 import 'package:flutter_ewallet/utils/authHeader.dart';
-import 'package:flutter_ewallet/utils/shared_values.dart';
+import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:http/http.dart' as http;
 
 /// Thin HTTP client for the E-Wallet API.
@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 ///
 /// It intentionally does not log tokens or response bodies.
 class HttpService {
-  static const String baseUrl = SharedValues.baseUrl;
+  static String get baseUrl => ApiConfig.baseUrl;
 
   static const Map<String, String> _jsonHeaders = {
     'Content-Type': 'application/json',

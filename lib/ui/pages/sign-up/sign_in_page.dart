@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
+import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
-import 'package:flutter_ewallet/utils/shared_values.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -26,6 +26,13 @@ class _SignInPageState extends State<SignInPage> {
   /// One-click demo: provisions a pre-populated account server-side and lands
   /// the visitor on a filled dashboard.
   Future<void> _startDemo() async {
+    if (ApiConfig.isMisconfigured) {
+      _showDemoError(
+        'Demo backend is not configured. Set the API_BASE_URL GitHub Actions variable and redeploy.',
+      );
+      return;
+    }
+
     setState(() => _demoLoading = true);
     try {
       final response = await HttpService.postWithoutAuth('/auth/demo', {});
@@ -49,16 +56,18 @@ class _SignInPageState extends State<SignInPage> {
     }
   }
 
-  void _showDemoError() {
+  void _showDemoError([String? message]) {
     if (!mounted) return;
     showTopSnackBar(
       Overlay.of(context),
-      const CustomSnackBar.error(message: 'Demo is unavailable right now. Please try again.'),
+      CustomSnackBar.error(
+        message: message ?? 'Demo is unavailable right now. Please try again.',
+      ),
     );
   }
 
   Future<void> signIn() async {
-    const url = '${SharedValues.baseUrl}/auth/login';
+    final url = '${ApiConfig.baseUrl}/auth/login';
     final username = usernameController.text.trim();
     final password = passwordController.text;
 

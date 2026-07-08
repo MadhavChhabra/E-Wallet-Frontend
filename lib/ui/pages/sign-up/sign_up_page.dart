@@ -5,7 +5,7 @@ import 'package:flutter_ewallet/utils/shared.dart';
 
 import 'package:http/http.dart' as http;
 
-import '../../../utils/shared_values.dart';
+import '../../../utils/api_config.dart';
 import '../../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -25,7 +25,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final passwordController = TextEditingController(text: '');
 
   Future<void> signUp() async {
-    const url = '${SharedValues.baseUrl}/auth/signup';
+    final url = '${ApiConfig.baseUrl}/auth/signup';
     final firstname =
         firstnameController.text; // Retrieve value from controller
     final lastname = lastnameController.text;

@@ -4,7 +4,7 @@ import 'package:cross_file/cross_file.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/utils/RefreshToken.dart';
 import 'package:flutter_ewallet/utils/authHeader.dart';
-import 'package:flutter_ewallet/utils/shared_values.dart';
+import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:http/http.dart' as http;
 
 /// Image upload + profile-picture management against the backend.
@@ -15,7 +15,7 @@ import 'package:http/http.dart' as http;
 class ImageService {
   /// Uploads [file] and returns the stored filename, or null on failure.
   static Future<String?> uploadImage(XFile file) async {
-    final uri = Uri.parse('${SharedValues.baseUrl}/images');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/images');
     final bytes = await file.readAsBytes();
 
     Future<http.StreamedResponse> send() async {
@@ -65,7 +65,7 @@ class ImageService {
     final res = await HttpService.getWithAuth('/users/me');
     final data = res['data'];
     if (data is Map && data['profileImageUrl'] != null) {
-      return '${SharedValues.apiHost}${data['profileImageUrl']}';
+      return '${ApiConfig.apiHost}${data['profileImageUrl']}';
     }
     return null;
   }

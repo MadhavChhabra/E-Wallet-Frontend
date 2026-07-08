@@ -101,12 +101,15 @@ clickable demo link — testers walk through the whole app in a browser, no APK.
   are safely skipped on web; every core flow (auth, accounts, transfer, history,
   cards, **top-up**) works.
 - **Deploy:** the `Deploy Web Demo (GitHub Pages)` workflow builds with the right
-  `--base-href` and publishes to Pages. Set repo **Variables**
-  `API_BASE_URL` (your backend HTTPS URL) and `RAZORPAY_KEY_ID` (public test key)
-  under Settings → Secrets and variables → Actions → Variables. Enable Pages
-  (Settings → Pages → Source: GitHub Actions).
+  `--base-href` and publishes to Pages. **Required:** set repo **Variable**
+  `API_BASE_URL` to your deployed backend HTTPS URL (e.g. `https://ewallet-madhav.duckdns.org`).
+  Optionally set `RAZORPAY_KEY_ID` (public test key) under Settings → Secrets and
+  variables → Actions → Variables. The workflow writes `web/api-config.json` so the
+  web app loads the backend URL at runtime. Enable Pages (Settings → Pages → Source:
+  GitHub Actions).
 - The demo needs the backend reachable over **HTTPS** with the Pages origin in
-  `APP_CORS_ALLOWED_ORIGINS` (see the backend `DEPLOYMENT.md`).
+  `APP_CORS_ALLOWED_ORIGINS` (e.g. `https://madhavchhabra.github.io`) — see the
+  backend `DEPLOYMENT.md`.
 
 Build locally: `flutter build web --dart-define=API_BASE_URL=https://your-backend`.
 
