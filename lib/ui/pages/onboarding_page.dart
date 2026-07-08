@@ -100,7 +100,7 @@ class _OnBoardingPageState extends State<OnBoardingPage> {
                               height: 20,
                             ),
                             CustomTextButton(
-                              title: 'SIgn In',
+                              title: 'Sign In',
                               onPressed: () {
                                 Navigator.pushNamedAndRemoveUntil(
                                     context, '/sign-in', (route) => false);

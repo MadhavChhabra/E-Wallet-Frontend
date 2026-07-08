@@ -124,102 +124,127 @@ class _SignInPageState extends State<SignInPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        children: [
-          const SizedBox(height: 100),
-          Image.asset(
-            'assets/img_logo_light.png',
-            width: 155,
-            height: 50,
-          ),
-          const SizedBox(height: 30),
-          Text(
-            'Sign In &\nGrow Your Finance',
-            style: blackTextStyle.copyWith(
-              fontSize: 20,
-              fontWeight: semiBold,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          children: [
+            const SizedBox(height: 24),
+            Center(
+              child: Image.asset(
+                'assets/img_logo_light.png',
+                width: 155,
+                height: 50,
+              ),
             ),
-          ),
-          const SizedBox(height: 30),
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: whiteColor,
+            const SizedBox(height: 28),
+            Text(
+              'Welcome back',
+              style: blackTextStyle.copyWith(
+                fontSize: 26,
+                fontWeight: semiBold,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CustomTextField(
-                  hintText: "Enter Username",
-                  title: 'Username',
-                  controller: usernameController,
-                ),
-                const SizedBox(height: 12),
-                CustomTextField(
-                  hintText: "Enter Password",
-                  title: 'Password',
-                  obscureText: true,
-                  controller: passwordController,
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/forgotPasswordEnterMail');
-                    },
-                    child: Text(
-                      'Forgot Password',
-                      style: blueTextStyle,
+            const SizedBox(height: 8),
+            Text(
+              'Sign in to manage your wallet, transfers, and cards.',
+              style: greyTextStyle.copyWith(fontSize: 14, height: 1.45),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                color: whiteColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: blackColor.withOpacity(0.05),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CustomTextField(
+                    hintText: 'Enter Username',
+                    title: 'Username',
+                    controller: usernameController,
+                  ),
+                  const SizedBox(height: 14),
+                  CustomTextField(
+                    hintText: 'Enter Password',
+                    title: 'Password',
+                    obscureText: true,
+                    controller: passwordController,
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/forgotPasswordEnterMail');
+                      },
+                      child: Text(
+                        'Forgot Password',
+                        style: blueTextStyle.copyWith(fontWeight: medium),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 15),
-                CustomFilledButton(
-                  title: 'Sign In',
-                  onPressed: signIn,
-                ),
-                const SizedBox(height: 10),
-                // One-click demo — no signup needed; lands on a filled dashboard.
-                _demoLoading
-                    ? const Center(child: Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: CircularProgressIndicator(),
-                      ))
-                    : CustomTextButton(
-                        title: '🚀 Explore Live Demo',
-                        onPressed: _startDemo,
+                  const SizedBox(height: 8),
+                  CustomFilledButton(
+                    title: 'Sign In',
+                    onPressed: signIn,
+                  ),
+                  const SizedBox(height: 14),
+                  _demoLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(),
+                        )
+                      : OutlinedButton(
+                          onPressed: _startDemo,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            side: BorderSide(color: purpleColor.withOpacity(0.45)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(56),
+                            ),
+                          ),
+                          child: Text(
+                            'Explore Live Demo',
+                            style: TextStyle(
+                              color: purpleColor,
+                              fontWeight: semiBold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                  const SizedBox(height: 14),
+                  const GoogleSignInButton(),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: greyColor.withOpacity(0.35))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('or', style: greyTextStyle.copyWith(fontSize: 13)),
                       ),
-                const SizedBox(height: 10),
-                
-                // GoogleSignInWidget()
-                const GoogleSignInButton(),
-                                const SizedBox(height: 10),
-
-                const Center(
-                    child: Text(
-                  "Or",
-                  style: TextStyle(color: Colors.grey),
-                )),
-                const SizedBox(
-                  height: 10,
-                ),
-
-
-                CustomTextButton(
-                  title: 'Create New Account',
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/sign-up');
-                  },
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-              ],
+                      Expanded(child: Divider(color: greyColor.withOpacity(0.35))),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  CustomTextButton(
+                    title: 'Create New Account',
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/sign-up');
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

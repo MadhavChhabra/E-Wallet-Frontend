@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/models/user_model.dart';
 import 'package:flutter_ewallet/ui/pages/card/pick_a_card.dart';
 import 'package:flutter_ewallet/ui/pages/transaction_history.dart';
+import 'package:flutter_ewallet/ui/widgets/notifications_sheet.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_card_friendly.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_home_services.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_latest_transaction_item.dart';
@@ -1059,64 +1060,83 @@ class _HomepageState extends State<Homepage> {
 
   Widget buildProfileSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 40),
+      margin: const EdgeInsets.only(top: 16),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hello',
-                style: greyTextStyle.copyWith(
-                  fontSize: 16,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hello',
+                  style: greyTextStyle.copyWith(fontSize: 15),
                 ),
-              ),
-              const SizedBox(
-                height: 2,
-              ),
-              Text(
-                name,
-                style: blackTextStyle.copyWith(
-                  fontSize: 20,
-                  fontWeight: semiBold,
-                ),
-              ),
-            ],
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/profile');
-            },
-            child: Container(
-              height: 60,
-              width: 60,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: _profileImage.image,
-                    fit: BoxFit.cover,
-                  )),
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: whiteColor,
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  style: blackTextStyle.copyWith(
+                    fontSize: 22,
+                    fontWeight: semiBold,
                   ),
-                  child: Center(
-                    child: Icon(
-                      Icons.check_circle,
-                      color: greenColor,
-                      size: 14,
+                ),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Material(
+                color: whiteColor,
+                shape: const CircleBorder(),
+                elevation: 0,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => NotificationsSheet.show(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(Icons.notifications_outlined, color: blackColor),
+                        Positioned(
+                          right: -1,
+                          top: -1,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: redColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: whiteColor, width: 1.5),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/profile');
+                },
+                child: Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: purpleColor.withOpacity(0.25), width: 2),
+                    image: DecorationImage(
+                      image: _profileImage.image,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

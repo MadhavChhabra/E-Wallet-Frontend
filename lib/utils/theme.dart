@@ -39,3 +39,62 @@ FontWeight semiBold = FontWeight.w600;
 FontWeight bold = FontWeight.w700;
 FontWeight extraBold = FontWeight.w800;
 FontWeight black = FontWeight.w900;
+
+ThemeData buildAppTheme() {
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: purpleColor,
+    brightness: Brightness.light,
+    surface: lightBackgroundColor,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: lightBackgroundColor,
+    fontFamily: blackTextStyle.fontFamily,
+    appBarTheme: AppBarTheme(
+      backgroundColor: lightBackgroundColor,
+      centerTitle: true,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      iconTheme: IconThemeData(color: blackColor),
+      titleTextStyle: blackTextStyle.copyWith(
+        fontSize: 20,
+        fontWeight: semiBold,
+      ),
+    ),
+    cardTheme: CardTheme(
+      color: whiteColor,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: lightBackgroundColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: greyColor.withOpacity(0.18)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: purpleColor.withOpacity(0.65), width: 1.4),
+      ),
+      hintStyle: greyTextStyle.copyWith(fontSize: 14),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: purpleColor,
+      foregroundColor: whiteColor,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    ),
+  );
+}

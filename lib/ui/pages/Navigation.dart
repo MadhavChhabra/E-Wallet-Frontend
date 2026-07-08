@@ -1,5 +1,6 @@
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/ui/pages/rewards_page.dart';
 import 'package:flutter_ewallet/ui/pages/home_page.dart';
 import 'package:flutter_ewallet/ui/pages/transaction_history.dart';
 
@@ -29,15 +30,8 @@ class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
       const Homepage(),
       const TransactionHistoryPage(),
       const SelectCard(),
-      // RewardPage(),
+      const RewardsPage(),
     ];
-
-    final Map<String, IconData> customIcons = {
-    'assets/icon_home.png': Icons.home,
-    'assets/icon_history.png': Icons.history,
-    'assets/icon_credit_card.png': Icons.credit_card,
-    'assets/icon_gift_card.png': Icons.card_giftcard,
-  };
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(

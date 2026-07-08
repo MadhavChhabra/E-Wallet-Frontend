@@ -47,19 +47,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       builder: (context, child) =>
           WebPhoneShell(child: child ?? const SizedBox.shrink()),
-      theme: ThemeData(
-          scaffoldBackgroundColor: lightBackgroundColor,
-          appBarTheme: AppBarTheme(
-            backgroundColor: lightBackgroundColor,
-            centerTitle: true,
-            elevation: 0,
-            iconTheme: IconThemeData(color: blackColor),
-            titleTextStyle: blackTextStyle.copyWith(
-              fontSize: 20,
-              fontWeight: semiBold,
-            ),
-          )),
-      title: 'Flutter e-wallet',
+      theme: buildAppTheme(),
+      title: 'E-Wallet',
       routes: {
         '/': (context) => const SplashPage(),
         '/onboarding': (context) => const OnBoardingPage(),
