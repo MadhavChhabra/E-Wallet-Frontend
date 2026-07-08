@@ -28,6 +28,7 @@ import 'package:flutter_ewallet/ui/pages/transfer/transfer_page.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_page.dart';
 import 'package:flutter_ewallet/ui/pages/BankAccount/add_account.dart';
 
+import 'package:flutter_ewallet/ui/widgets/web_phone_shell.dart';
 import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
@@ -44,6 +45,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      builder: (context, child) =>
+          WebPhoneShell(child: child ?? const SizedBox.shrink()),
       theme: ThemeData(
           scaffoldBackgroundColor: lightBackgroundColor,
           appBarTheme: AppBarTheme(

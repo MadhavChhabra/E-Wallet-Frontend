@@ -102,7 +102,8 @@ clickable demo link — testers walk through the whole app in a browser, no APK.
   cards, **top-up**) works.
 - **Deploy:** the `Deploy Web Demo (GitHub Pages)` workflow builds with the right
   `--base-href` and publishes to Pages. **Required:** set repo **Variable**
-  `API_BASE_URL` to your deployed backend HTTPS URL (e.g. `https://ewallet-madhav.duckdns.org`).
+  `API_BASE_URL` to your deployed backend HTTPS URL (default for Pages:
+  `https://springpay.duckdns.org`).
   Optionally set `RAZORPAY_KEY_ID` (public test key) under Settings → Secrets and
   variables → Actions → Variables. The workflow writes `web/api-config.json` so the
   web app loads the backend URL at runtime. Enable Pages (Settings → Pages → Source:

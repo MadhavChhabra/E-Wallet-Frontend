@@ -38,20 +38,17 @@ jobs:
 
       - name: Validate backend config
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://springpay.duckdns.org' }}
         run: |
-          if [ -z "$API_BASE_URL" ]; then
-            echo "::error::Set repo Variable API_BASE_URL (Settings → Secrets and variables → Actions → Variables) to your deployed backend HTTPS URL, e.g. https://ewallet-madhav.duckdns.org"
-            exit 1
-          fi
           if echo "$API_BASE_URL" | grep -qi 'example.com'; then
             echo "::error::API_BASE_URL must be your real backend URL, not example.com"
             exit 1
           fi
+          echo "Using API_BASE_URL=$API_BASE_URL"
 
       - name: Write web API config
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://springpay.duckdns.org' }}
         run: |
           printf '{"apiBaseUrl":"%s"}\n' "$API_BASE_URL" > web/api-config.json
           cat web/api-config.json
@@ -61,7 +58,7 @@ jobs:
       # Secrets and variables -> Actions -> Variables).
       - name: Build web
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://springpay.duckdns.org' }}
           RAZORPAY_KEY_ID: ${{ vars.RAZORPAY_KEY_ID }}
         run: |
           flutter build web --release \
