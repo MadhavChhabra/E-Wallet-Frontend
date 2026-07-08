@@ -1,6 +1,4 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:local_auth/local_auth.dart';
@@ -21,18 +19,25 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    _precacheAssets();
+    Future<void>.delayed(const Duration(seconds: 2), _checkLoginStatus);
+  }
 
-    Timer(const Duration(seconds: 2), () {
-      _checkLoginStatus();
-
-      // Navigator.pushNamedAndRemoveUntil(
-      //     context, '/onboarding', (route) => false);
-    });
+  Future<void> _precacheAssets() async {
+    if (!mounted) return;
+    final assetPaths = [
+      'assets/img_logo_dark.png',
+      'assets/img_logo_light.png',
+      'assets/placeholder_image.jpg',
+      'assets/bankCardBackgrounds/bg1.jpg',
+      'assets/bankCardBackgrounds/bg2.jpg',
+    ];
+    for (final path in assetPaths) {
+      await precacheImage(AssetImage(path), context);
+    }
   }
 
   Future<bool> _authenticateWithBiometrics() async {
-    // Biometrics aren't available on web (and may be absent on some devices);
-    // don't block the session on it.
     if (kIsWeb) return true;
     try {
       final LocalAuthentication auth = LocalAuthentication();

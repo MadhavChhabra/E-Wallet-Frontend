@@ -12,13 +12,14 @@ class CustomTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.title,
     this.obscureText = false,
     this.controller,
     this.hintText,
-    this.keyboardType, this.inputFormatters,
-  }) : super(key: key);
+    this.keyboardType,
+    this.inputFormatters,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,22 +30,19 @@ class CustomTextField extends StatelessWidget {
           title,
           style: blackTextStyle.copyWith(
             fontWeight: semiBold,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(
-          height: 8,
-        ),
+        const SizedBox(height: 8),
         TextFormField(
           obscureText: obscureText,
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
+          style: blackTextStyle.copyWith(fontSize: 15),
           decoration: InputDecoration(
-            hintText: hintText,hintStyle: greyTextStyle.copyWith(fontSize: 15),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            contentPadding: const EdgeInsets.all(12),
+            hintText: hintText,
+            hintStyle: greyTextStyle.copyWith(fontSize: 15),
           ),
         ),
       ],

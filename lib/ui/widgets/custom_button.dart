@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_ewallet/utils/theme.dart';
 
 class CustomFilledButton extends StatelessWidget {
@@ -7,23 +6,27 @@ class CustomFilledButton extends StatelessWidget {
   final double width;
   final double height;
   final VoidCallback? onPressed;
+
   const CustomFilledButton({
-    Key? key,
+    super.key,
     required this.title,
     this.width = double.infinity,
-    this.height = 50,
+    this.height = 52,
     this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
       height: height,
-      child: TextButton(
+      child: FilledButton(
         onPressed: onPressed,
-        style: TextButton.styleFrom(
+        style: FilledButton.styleFrom(
           backgroundColor: purpleColor,
+          disabledBackgroundColor: purpleColor.withOpacity(0.45),
+          foregroundColor: whiteColor,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(56),
           ),
@@ -45,13 +48,14 @@ class CustomTextButton extends StatelessWidget {
   final double width;
   final double height;
   final VoidCallback? onPressed;
+
   const CustomTextButton({
-    Key? key,
+    super.key,
     required this.title,
     this.width = double.infinity,
     this.height = 24,
     this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,11 +66,13 @@ class CustomTextButton extends StatelessWidget {
         onPressed: onPressed,
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
+          foregroundColor: greyColor,
         ),
         child: Text(
           title,
           style: greyTextStyle.copyWith(
             fontSize: 16,
+            fontWeight: medium,
           ),
         ),
       ),
@@ -80,13 +86,15 @@ class CustomizedTextButton extends StatelessWidget {
   final double height;
   final Color colour;
   final VoidCallback? onPressed;
+
   const CustomizedTextButton({
-    Key? key,
+    super.key,
     required this.title,
     this.width = double.infinity,
     this.height = 24,
-    this.onPressed, required this.colour,
-  }) : super(key: key);
+    this.onPressed,
+    required this.colour,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -95,14 +103,13 @@ class CustomizedTextButton extends StatelessWidget {
       height: height,
       child: TextButton(
         onPressed: onPressed,
-        style: TextButton.styleFrom(
-          padding: EdgeInsets.zero,
-        ),
+        style: TextButton.styleFrom(padding: EdgeInsets.zero),
         child: Text(
           title,
           style: greyTextStyle.copyWith(
             color: colour,
             fontSize: 16,
+            fontWeight: medium,
           ),
         ),
       ),

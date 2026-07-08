@@ -11,32 +11,25 @@ class CustomBottomNavigation extends StatefulWidget {
   const CustomBottomNavigation({super.key});
 
   @override
-  _CustomBottomNavigationState createState() => _CustomBottomNavigationState();
+  State<CustomBottomNavigation> createState() => _CustomBottomNavigationState();
 }
 
 class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+  static const _pages = [
+    Homepage(),
+    TransactionHistoryPage(),
+    SelectCard(),
+    RewardsPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const Homepage(),
-      const TransactionHistoryPage(),
-      const SelectCard(),
-      const RewardsPage(),
-    ];
-
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.of(context).pushNamed("/addCard");
+          Navigator.of(context).pushNamed('/addCard');
         },
         backgroundColor: purpleColor,
         child: Image.asset(
@@ -45,40 +38,29 @@ class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: pages, // Prevent swiping
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
       ),
       bottomNavigationBar: AnimatedBottomNavigationBar(
         backgroundColor: whiteColor,
         activeIndex: _currentIndex,
-        icons:
-         const [
-          Icons.home,
-          Icons.history,
-          Icons.credit_card,
-          Icons.card_giftcard ,
+        icons: const [
+          Icons.home_rounded,
+          Icons.history_rounded,
+          Icons.credit_card_rounded,
+          Icons.card_giftcard_rounded,
         ],
         blurEffect: true,
         activeColor: purpleColor,
-        inactiveColor: blackColor,
+        inactiveColor: blackColor.withOpacity(0.55),
         gapLocation: GapLocation.center,
         notchSmoothness: NotchSmoothness.verySmoothEdge,
         elevation: 16,
         leftCornerRadius: 22,
         rightCornerRadius: 22,
-        iconSize: 30,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-            _pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          });
-        },
+        iconSize: 28,
+        onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
   }

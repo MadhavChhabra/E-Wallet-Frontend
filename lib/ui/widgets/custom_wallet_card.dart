@@ -1,18 +1,16 @@
-
 import 'package:flutter/material.dart';
-import '../../utils/theme.dart';
+import 'package:flutter_ewallet/utils/theme.dart';
 
-class WalletCard extends StatefulWidget {
+class WalletCard extends StatelessWidget {
   final int? index;
   final String name;
   final double balance;
   final String userFullName;
   final String iban;
-  final List<String> backgroundImagePaths; // List of background image paths
-  final int upperLimit; // Upper limit for image names (optional)
+  final List<String> backgroundImagePaths;
 
   const WalletCard({
-    Key? key,
+    super.key,
     required this.name,
     required this.balance,
     required this.userFullName,
@@ -23,57 +21,93 @@ class WalletCard extends StatefulWidget {
       'assets/bankCardBackgrounds/bg3.jpg',
       'assets/bankCardBackgrounds/bg4.jpg',
       'assets/bankCardBackgrounds/bg5.jpg',
-      'assets/bankCardBackgrounds/bg6.jpg'
-    ], // Default path
-    this.upperLimit = 6, this.index, // Default upper limit (optional)
-  }) : super(key: key);
-
-  @override
-  State<WalletCard> createState() => _WalletCardState();
-}
-
-class _WalletCardState extends State<WalletCard> {
-  @override
-  void initState() {
-    super.initState();
-  }
+      'assets/bankCardBackgrounds/bg6.jpg',
+    ],
+    this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final int cardIndex =
-        widget.index ?? 1;
-    final backgroundImage = AssetImage(widget
-        .backgroundImagePaths[cardIndex % widget.backgroundImagePaths.length]);
+    final cardIndex = index ?? 0;
+    final backgroundImage = AssetImage(
+      backgroundImagePaths[cardIndex % backgroundImagePaths.length],
+    );
 
-    return GestureDetector(
-      child: Container(
-        margin: const EdgeInsets.only(top: 30.0, left: 5.0, right: 5.0),
-        padding: const EdgeInsets.all(30.0),
-        width: double.infinity,
-        height: 220.0,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28.0),
-          image: DecorationImage(
-            fit: BoxFit.cover,
-            image: backgroundImage,
-          ),
+    return Container(
+      margin: const EdgeInsets.only(top: 16, left: 4, right: 4),
+      width: double.infinity,
+      height: 210,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        image: DecorationImage(
+          fit: BoxFit.cover,
+          image: backgroundImage,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        boxShadow: [
+          BoxShadow(
+            color: blackColor.withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Text(
-              widget.name.toUpperCase(),
-              style:
-                  whiteTextStyle.copyWith(fontSize: 18.0, fontWeight: medium),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.black.withOpacity(0.15),
+                    Colors.black.withOpacity(0.55),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 28.0),
-            Text(
-              'Balance: ₹ ${widget.balance.toStringAsFixed(2)}',
-              style:
-                  whiteTextStyle.copyWith(fontSize: 18.0, fontWeight: medium),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name.toUpperCase(),
+                    style: whiteTextStyle.copyWith(
+                      fontSize: 16,
+                      fontWeight: semiBold,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Available balance',
+                    style: whiteTextStyle.copyWith(
+                      fontSize: 12,
+                      color: whiteColor.withOpacity(0.82),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '₹ ${balance.toStringAsFixed(2)}',
+                    style: whiteTextStyle.copyWith(
+                      fontSize: 28,
+                      fontWeight: bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'IBAN · ${iban.length > 18 ? '${iban.substring(0, 18)}…' : iban}',
+                    style: whiteTextStyle.copyWith(
+                      fontSize: 12,
+                      color: whiteColor.withOpacity(0.88),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20.0),
-            Text('IBAN: ${widget.iban}', style: whiteTextStyle),
           ],
         ),
       ),
