@@ -3,6 +3,8 @@ import 'package:flutter_ewallet/models/user_model.dart';
 import 'package:flutter_ewallet/ui/pages/card/pick_a_card.dart';
 import 'package:flutter_ewallet/ui/pages/transaction_history.dart';
 import 'package:flutter_ewallet/ui/widgets/notifications_sheet.dart';
+import 'package:flutter_ewallet/ui/widgets/animated_entrance.dart';
+import 'package:flutter_ewallet/ui/widgets/profile_avatar.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_home_services.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_latest_transaction_item.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_user.dart';
@@ -181,6 +183,7 @@ class _AccountsWidgetState extends State<AccountsWidget> {
                   height: 230,
                   child: PageView.builder(
                     controller: _pageController,
+                    physics: const BouncingScrollPhysics(),
                     itemCount: data.length,
                     itemBuilder: (context, index) {
                       final bankAccount = data[index];
@@ -431,23 +434,52 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _handleRefresh,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+      color: purpleColor,
+      child: Container(
+        decoration: const BoxDecoration(gradient: homeBackgroundGradient),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                buildProfileSection(context),
-                AccountsWidget(key: _accountsListKey),
-                buildProgressLevel(),
-                buildServices(context),
-                TransactionListWidget(
-                  key: _transactionListKey,
-                  callback: updateProgressSpent,
+                AnimatedEntrance(
+                  child: _HomeHeaderCard(
+                    child: buildProfileSection(context),
+                  ),
                 ),
-                SendAgainWidget(key: _sendAgainKey),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 70),
+                        child: AccountsWidget(key: _accountsListKey),
+                      ),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 120),
+                        child: buildProgressLevel(),
+                      ),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 170),
+                        child: buildServices(context),
+                      ),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 220),
+                        child: TransactionListWidget(
+                          key: _transactionListKey,
+                          callback: updateProgressSpent,
+                        ),
+                      ),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 270),
+                        child: SendAgainWidget(key: _sendAgainKey),
+                      ),
+                      const SizedBox(height: 96),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -488,11 +520,21 @@ class _HomepageState extends State<Homepage> {
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              value: progress,
-              color: greenColor,
-              backgroundColor: lightBackgroundColor,
+            child: SizedBox(
+              height: 8,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: lightBackgroundColor),
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(gradient: progressGradient),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -594,6 +636,7 @@ class _HomepageState extends State<Homepage> {
           style: blackTextStyle.copyWith(
             fontSize: 17,
             fontWeight: semiBold,
+            color: purpleColor.withOpacity(0.92),
           ),
         ),
         const SizedBox(height: 14),
@@ -606,6 +649,7 @@ class _HomepageState extends State<Homepage> {
                 subtitle: 'QR Code',
                 preferredHeight: 40,
                 preferredWidth: 40,
+                tileGradient: [purpleColor.withOpacity(0.18), purpleColor.withOpacity(0.06)],
                 onTap: () {
                   Navigator.pushNamed(context, '/QR_Scanner');
                 },
@@ -616,6 +660,7 @@ class _HomepageState extends State<Homepage> {
                 subtitle: 'Money',
                 preferredHeight: 50,
                 preferredWidth: 50,
+                tileGradient: [blueColor.withOpacity(0.22), blueColor.withOpacity(0.08)],
                 onTap: () {
                   Navigator.pushNamed(context, '/transfer');
                 },
@@ -626,21 +671,20 @@ class _HomepageState extends State<Homepage> {
                 subtitle: 'Transfer',
                 preferredHeight: 32,
                 preferredWidth: 32,
+                tileGradient: [tealColor.withOpacity(0.22), tealColor.withOpacity(0.08)],
                 onTap: () {
                   Navigator.pushNamed(context, '/selfTransfer');
                 },
               ),
               CustomHomeServices(
-                iconUrl: 'assets/card_payment.png',
-                title: 'Pay Using',
-                subtitle: 'Card',
-                preferredHeight: 35,
-                preferredWidth: 35,
+                iconUrl: 'assets/img_wallet.png',
+                title: 'Top Up',
+                subtitle: 'Wallet',
+                preferredHeight: 30,
+                preferredWidth: 30,
+                tileGradient: [amberColor.withOpacity(0.24), coralColor.withOpacity(0.10)],
                 onTap: () {
-                  Navigator.pushNamed(context, '/cardPayment');
-                  // showDialog(
-                  //     context: context,
-                  //     builder: (context) => const MoreDialog());
+                  Navigator.pushNamed(context, '/topup');
                 },
               ),
             ],
@@ -703,7 +747,7 @@ class _HomepageState extends State<Homepage> {
 
   Widget buildProfileSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 16),
+      margin: const EdgeInsets.only(top: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -714,12 +758,15 @@ class _HomepageState extends State<Homepage> {
               children: [
                 Text(
                   'Hello',
-                  style: greyTextStyle.copyWith(fontSize: 15),
+                  style: whiteTextStyle.copyWith(
+                    fontSize: 15,
+                    color: whiteColor.withOpacity(0.82),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   name,
-                  style: blackTextStyle.copyWith(
+                  style: whiteTextStyle.copyWith(
                     fontSize: 22,
                     fontWeight: semiBold,
                   ),
@@ -731,7 +778,7 @@ class _HomepageState extends State<Homepage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Material(
-                color: whiteColor,
+                color: whiteColor.withOpacity(0.16),
                 shape: const CircleBorder(),
                 elevation: 0,
                 child: InkWell(
@@ -742,7 +789,7 @@ class _HomepageState extends State<Homepage> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        Icon(Icons.notifications_outlined, color: blackColor),
+                        Icon(Icons.notifications_outlined, color: whiteColor),
                         Positioned(
                           right: -1,
                           top: -1,
@@ -762,27 +809,42 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               const SizedBox(width: 10),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/profile');
-                },
-                child: Container(
-                  height: 48,
-                  width: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: purpleColor.withOpacity(0.25), width: 2),
-                    image: DecorationImage(
-                      image: _profileImage.image,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
+              ProfileAvatar(
+                image: _profileImage.image,
+                size: 48,
+                onTap: () => Navigator.pushNamed(context, '/profile'),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HomeHeaderCard extends StatelessWidget {
+  const _HomeHeaderCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
+      decoration: BoxDecoration(
+        gradient: homeHeaderGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: purpleColor.withOpacity(0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

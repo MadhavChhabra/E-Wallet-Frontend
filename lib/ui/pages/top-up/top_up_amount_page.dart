@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/services/razorpay/razorpay_checkout.dart';
+import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
+import 'package:flutter_ewallet/ui/widgets/web_safe_scaffold.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
 import 'package:flutter_ewallet/utils/shared_values.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
@@ -34,6 +36,15 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String && args.isNotEmpty) {
+      _walletIban = args;
+    }
+  }
+
   Future<void> _startCheckout() async {
     final amount = double.tryParse(amountController.text) ?? 0;
     if (amount < 1) {
@@ -56,7 +67,11 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
 
       _checkout.open(
         RazorpayOptions(
-          keyId: (order['keyId'] ?? SharedValues.razorpayKeyId).toString(),
+          keyId: (order['keyId'] ??
+                  (ApiConfig.razorpayKeyId.isNotEmpty
+                      ? ApiConfig.razorpayKeyId
+                      : SharedValues.razorpayKeyId))
+              .toString(),
           orderId: order['orderId'].toString(),
           amountInPaise: (order['amountInPaise'] as num).toInt(),
           currency: (order['currency'] ?? 'INR').toString(),
@@ -115,8 +130,11 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WebSafeScaffold(
+      title: 'Enter amount',
       backgroundColor: darkBackgroundColor,
+      appBarBackgroundColor: darkBackgroundColor,
+      appBarForegroundColor: whiteColor,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 58),

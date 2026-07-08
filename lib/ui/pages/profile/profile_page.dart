@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/ui/pages/forgotPassword/changePasswordInternal.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_profile_menu_item.dart';
+import 'package:flutter_ewallet/utils/navigation_utils.dart';
+import 'package:flutter_ewallet/ui/widgets/profile_avatar.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
@@ -61,8 +63,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WebSafePopScope(
+      child: Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text(
           'Profile',
         ),
@@ -84,34 +88,10 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             child: Column(
               children: [
-                Container(
-                  height: 120,
-                  width: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: _image.image,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: whiteColor,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.check_circle,
-                          color: greenColor,
-                          size: 14,
-                        ),
-                      ),
-                    ),
-                  ),
+                ProfileAvatar(
+                  image: _image.image,
+                  size: 120,
+                  showBadge: true,
                 ),
                 const SizedBox(
                   height: 16,
@@ -147,6 +127,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       // ignore: use_build_context_synchronously
                       Navigator.pushNamed(context, '/edit-pin');
                     }
+                  },
+                ),
+                ProfileMenuItem(
+                  iconUrl: 'assets/img_wallet.png',
+                  title: 'Top Up Wallet',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/topup');
                   },
                 ),
                 ProfileMenuItem(
@@ -226,6 +213,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+    ),
     );
   }
 }

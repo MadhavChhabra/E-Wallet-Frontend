@@ -8,19 +8,23 @@ class WebPhoneShell extends StatelessWidget {
 
   final Widget child;
 
-  /// Standard mobile aspect ratio (width : height).
-  static const double _aspectRatio = 9 / 19.5;
+  /// Standard mobile aspect ratio (width : height). Slightly taller for long phones.
+  static const double _aspectRatio = 9 / 20;
   static const double _minWidth = 360;
   static const double _maxWidth = 414;
   static const double _wideBreakpoint = 520;
+  static const double _tallPhoneRatio = 2.05;
 
   static _PhoneDimensions _dimensions(BoxConstraints constraints) {
     if (constraints.maxWidth <= _wideBreakpoint) {
+      final isTallPhone =
+          constraints.maxHeight / constraints.maxWidth > _tallPhoneRatio;
       return _PhoneDimensions(
         width: constraints.maxWidth,
         height: constraints.maxHeight,
         scale: 1,
         showFrame: false,
+        isTallPhone: isTallPhone,
       );
     }
 
@@ -57,6 +61,7 @@ class WebPhoneShell extends StatelessWidget {
       scale: scale.clamp(0.72, 1.0),
       showFrame: true,
       isLargeDesktop: isLargeDesktop,
+      isTallPhone: height / width > _tallPhoneRatio,
     );
   }
 
@@ -159,6 +164,7 @@ class _PhoneDimensions {
     required this.scale,
     required this.showFrame,
     this.isLargeDesktop = false,
+    this.isTallPhone = false,
   });
 
   final double width;
@@ -166,6 +172,7 @@ class _PhoneDimensions {
   final double scale;
   final bool showFrame;
   final bool isLargeDesktop;
+  final bool isTallPhone;
 }
 
 class _PhoneFrame extends StatelessWidget {
@@ -209,7 +216,9 @@ class _PhoneFrame extends StatelessWidget {
             MediaQuery(
               data: MediaQuery.of(context).copyWith(
                 size: Size(dims.width, dims.height),
-                padding: EdgeInsets.only(top: 10 * dims.scale),
+                padding: EdgeInsets.only(
+                  top: dims.isTallPhone ? 4 * dims.scale : 8 * dims.scale,
+                ),
                 textScaler: TextScaler.linear(1.0),
               ),
               child: SizedBox(

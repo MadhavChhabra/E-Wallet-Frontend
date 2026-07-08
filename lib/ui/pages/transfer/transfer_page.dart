@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_page.dart';
+import 'package:flutter_ewallet/utils/navigation_utils.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
@@ -76,8 +77,10 @@ class _TransferPageState extends State<TransferPage> {
       toIbanController.text = receiverIban;
     } else {
     }
-    return Scaffold(
+    return WebSafePopScope(
+      child: Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('Transfer'),
       ),
       body: ListView(
@@ -183,6 +186,7 @@ class _TransferPageState extends State<TransferPage> {
           ),
         ],
       ),
+    ),
     );
   }
 

@@ -1,3 +1,4 @@
 {
-  "apiBaseUrl": "https://springpay.duckdns.org"
+  "apiBaseUrl": "https://springpay.duckdns.org",
+  "razorpayKeyId": ""
 }

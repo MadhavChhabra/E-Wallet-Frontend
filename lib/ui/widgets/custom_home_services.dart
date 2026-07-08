@@ -9,6 +9,7 @@ class CustomHomeServices extends StatelessWidget {
   final VoidCallback? onTap;
   final double preferredWidth;
   final double preferredHeight;
+  final List<Color>? tileGradient;
 
   const CustomHomeServices({
     super.key,
@@ -18,10 +19,17 @@ class CustomHomeServices extends StatelessWidget {
     this.onTap,
     this.preferredHeight = 26,
     this.preferredWidth = 26,
+    this.tileGradient,
   });
 
   @override
   Widget build(BuildContext context) {
+    final gradient = tileGradient ??
+        [
+          purpleColor.withOpacity(0.14),
+          blueColor.withOpacity(0.08),
+        ];
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -36,13 +44,18 @@ class CustomHomeServices extends StatelessWidget {
                 width: 68,
                 height: 68,
                 decoration: BoxDecoration(
-                  color: whiteColor,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradient,
+                  ),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: whiteColor.withOpacity(0.65)),
                   boxShadow: [
                     BoxShadow(
-                      color: blackColor.withOpacity(0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      color: gradient.first.withOpacity(0.28),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),

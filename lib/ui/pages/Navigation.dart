@@ -38,9 +38,20 @@ class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      body: Stack(
+        fit: StackFit.expand,
+        children: List.generate(
+          _pages.length,
+          (index) => IgnorePointer(
+            ignoring: index != _currentIndex,
+            child: AnimatedOpacity(
+              opacity: index == _currentIndex ? 1 : 0,
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              child: _pages[index],
+            ),
+          ),
+        ),
       ),
       bottomNavigationBar: AnimatedBottomNavigationBar(
         backgroundColor: whiteColor,

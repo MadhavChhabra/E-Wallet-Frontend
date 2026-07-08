@@ -5,6 +5,7 @@ import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
 
+import '../../../utils/navigation_utils.dart';
 import '../../../utils/shared_user.dart';
 import '../../models/user_model.dart';
 
@@ -65,8 +66,10 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WebSafePopScope(
+      child: Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('Transfer'),
       ),
       body: ListView(
@@ -168,6 +171,7 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
           ),
         ],
       ),
+    ),
     );
   }
 

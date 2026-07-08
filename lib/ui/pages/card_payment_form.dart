@@ -4,6 +4,7 @@ import 'package:flutter_credit_card/flutter_credit_card.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_card_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import '../../../utils/navigation_utils.dart';
 import '../../../services/http_service.dart';
 import '../../../utils/shared_user.dart';
 import '../../models/user_model.dart';
@@ -85,9 +86,11 @@ class _CardPaymentPageState extends State<CardPaymentPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WebSafePopScope(
+      child: Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('Select Card'),
       ),
       body: Container(
@@ -255,6 +258,7 @@ class _CardPaymentPageState extends State<CardPaymentPage>
           ),
         ),
       ),
+    ),
     );
   }
 

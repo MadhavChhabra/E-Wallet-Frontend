@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 /// Resolves the backend host at runtime (web) or from compile-time defines.
 class ApiConfig {
   static String? _runtimeApiHost;
+  static String? _runtimeRazorpayKeyId;
 
   static String get apiHost {
     final runtime = _runtimeApiHost;
@@ -17,6 +18,15 @@ class ApiConfig {
   }
 
   static String get baseUrl => '$apiHost/api/v1';
+
+  /// Public Razorpay key from runtime web config or compile-time define.
+  static String get razorpayKeyId {
+    final runtime = _runtimeRazorpayKeyId;
+    if (runtime != null && runtime.isNotEmpty) {
+      return runtime;
+    }
+    return SharedValues.razorpayKeyId;
+  }
 
   static bool get isMisconfigured =>
       apiHost.contains('example.com') || apiHost.startsWith('http://10.0.2.2');
@@ -37,6 +47,11 @@ class ApiConfig {
       if (raw == null || raw.isEmpty) return;
 
       _runtimeApiHost = raw.replaceAll(RegExp(r'/+$'), '');
+
+      final razorpay = decoded['razorpayKeyId']?.toString().trim();
+      if (razorpay != null && razorpay.isNotEmpty) {
+        _runtimeRazorpayKeyId = razorpay;
+      }
     } catch (_) {
       // Fall back to compile-time API_BASE_URL.
     }
