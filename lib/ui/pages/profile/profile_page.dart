@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/ui/pages/forgotPassword/changePasswordInternal.dart';
-import 'package:flutter_ewallet/ui/pages/forgotPassword/change_password.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_profile_menu_item.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
-import 'package:http/http.dart' as http;
 
-import '../../../models/user_model.dart';
 import '../../../services/http_service.dart';
-import '../../../utils/shared_values.dart';
+import '../../../services/image_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -29,53 +26,36 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _logout() async {
     try {
-      int? userId;
-      final UserModel? user = await SharedUser().getCurrentUser();
-      if (user != null) {
-        print('User is not null');
-        userId = user.id;
-      }
-      print("${SharedValues.baseUrl}/auth/logout");
-      final response = await HttpService.logout(userId.toString());
-      if (response['message'] == 'Success') {
-        SharedUser.logout();
-        SharedUser()
-            .setProfileImage(Image.asset("assets/placeholder_image.jpg"));
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/sign-in', (route) => false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logged out successfully')),
-        );
-      }
+      // Best-effort server-side revocation, then clear local credentials.
+      await HttpService.logout();
+      await SharedUser.logout();
+      SharedUser().setProfileImage(Image.asset("assets/placeholder_image.jpg"));
+      if (!mounted) return;
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/sign-in', (route) => false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logged out successfully')),
+      );
     } catch (e) {
-      print("Error Logging out: $e");
+      // Even if the network call fails, ensure the user is logged out locally.
+      await SharedUser.logout();
+      if (!mounted) return;
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/sign-in', (route) => false);
     }
   }
 
   void _fetchProfileImage() async {
-    print("GOING THERE");
-    int? userId;
-    final UserModel? user = await SharedUser().getCurrentUser();
-    if (user != null) {
-      print('User is not null');
-      userId = user.id;
-    }
-    final apiUrl = '${SharedValues.baseUrl}/image/user/$userId/profile-picture';
-
     try {
-      final response = await http.get(Uri.parse(apiUrl));
-      print('REsponse from fetching image is $response');
-      if (response.statusCode == 200) {
-        final imageData = response.bodyBytes;
+      final url = await ImageService.currentProfileImageUrl();
+      if (url != null && mounted) {
         setState(() {
-          _image = Image.memory(imageData);
+          _image = Image.network(url);
           SharedUser().setProfileImage(_image);
         });
-
-        SharedUser().setProfileImage(_image);
       }
-    } catch (e) {
-      print('Error fetching profile image: $e');
+    } catch (_) {
+      // Keep the existing/placeholder image.
     }
   }
 
@@ -207,7 +187,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     final routerPin = Navigator.pushNamed(context, '/pin');
                     if (await routerPin == true) {
                       String? email = await SharedUser().getEmail();
-                      print(email);
 
                       Navigator.of(context)
                           .push(MaterialPageRoute(

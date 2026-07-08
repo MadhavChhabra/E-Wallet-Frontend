@@ -8,8 +8,8 @@ import 'package:crypto/crypto.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
-import 'package:sign_button/sign_button.dart';
+
+import '../services/http_service.dart';
 
 class SharedUser {
   static final SharedUser _singleton = SharedUser._internal();
@@ -61,7 +61,6 @@ class SharedUser {
       return true;
     } catch (e) {
       // Handle any errors
-      print('Error setting security PIN: $e');
       return false;
     }
   }
@@ -88,21 +87,11 @@ class SharedUser {
   }
 
   Future<void> writeToStorage(String key, String value) async {
-    try {
-      await _storage.write(key: key, value: value);
-      print('Values stored successfully');
-    } catch (e) {
-      print('Error storing values: $e');
-    }
+    await _storage.write(key: key, value: value);
   }
 
   Future<void> updateAccessToken(String value) async {
-    try {
-      await _storage.write(key: 'token', value: value);
-      print('Access Token updated successfully');
-    } catch (e) {
-      print('Error updating access token: $e');
-    }
+    await _storage.write(key: 'token', value: value);
   }
 
   Future<UserModel?> getCurrentUser() async {
@@ -129,11 +118,9 @@ class SharedUser {
         );
 
         _cachedUser = user;
-        print(_cachedUser);
 
         return user;
       } else {
-        print('Token Null, User Not Found');
         logout();
         return null;
       }
@@ -205,9 +192,7 @@ class SharedUser {
       // Update logged-in state
       _singleton._isLoggedIn = false;
       await _storage.write(key: _loggedInKey, value: 'false');
-      print('Logged out successfully');
     } catch (e) {
-      print('Error logging out: $e');
     }
   }
 
@@ -225,7 +210,6 @@ class SharedUser {
         accountIds.add(accountId!);
       }
     } catch (e) {
-      print('Error retrieving bank account IDs: $e');
     }
     return accountIds;
   }
@@ -265,7 +249,6 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         final GoogleSignInAccount? newAccount = await _googleSignIn.signIn();
         if (newAccount == null) {
           // User cancelled the sign-in process
-          print("User cancelled sign-in.");
           setState(() => _isSigningIn = false);
           return;
         }
@@ -276,60 +259,37 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         final GoogleSignInAuthentication authentication =
             await currentUser.authentication;
         final String? idToken = authentication.idToken;
-        final String? accessToken = authentication.accessToken;
 
-        // Send ID token to backend
+        // Send the Google ID token to the backend for server-side verification.
         try {
-          final response = await http.post(
-            Uri.parse(
-                'http://10.0.2.2:8080/oauth/google'), // Replace with your endpoint
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'idToken': idToken}),
-          );
+          final response = await HttpService.postWithoutAuth(
+              '/auth/oauth/google', {'idToken': idToken});
 
-          print(response.body);
-
-          if (response.statusCode == 200) {
-            SharedUser().updateLoggedInState(true);
-            print("response body is ");
-            print(response.statusCode);
-            print(response.body);
-            final responseData = jsonDecode(response.body);
-            print(responseData);
-            final data = responseData['data'];
+          if (response['message'] == 'Success' && response['data'] != null) {
+            final data = response['data'];
             final token = data['token'];
-            final Refreshtoken = data['refreshToken'];
+            final refreshToken = data['refreshToken'];
 
-            print(token);
-
-            if (token != null && token.isNotEmpty) {
+            if (token != null && token.toString().isNotEmpty) {
+              SharedUser().updateLoggedInState(true);
               SharedUser().writeToStorage('token', token);
               SharedUser().writeToStorage('user', jsonEncode(data));
-              SharedUser().writeToStorage('refreshToken', Refreshtoken);
+              SharedUser().writeToStorage('refreshToken', refreshToken);
 
-              print('Token Stored');
-            } else {
-              print('Token is null');
+              if (!mounted) return;
+              Navigator.pushNamedAndRemoveUntil(
+                  context, '/home', (route) => false);
             }
-
-            Navigator.pushNamedAndRemoveUntil(
-                context, '/home', (route) => false);
-            // Handle successful authentication response
-            // (e.g., navigate to a different screen, store tokens)
-          } else if (response.statusCode == 409) {
-            Fluttertoast.showToast(msg: "USER ALREADY REGISTERED");
-            SharedUser.logout();
-            // Handle authentication error
+          } else {
+            Fluttertoast.showToast(
+                msg: response['message']?.toString() ?? 'Google sign-in failed');
           }
         } catch (e) {
-          print("HTTP request error: $e");
-          // Handle network errors or backend errors
+          Fluttertoast.showToast(msg: 'Google sign-in failed');
         }
       } else {
-        print("Current user is null.");
       }
     } catch (e) {
-      print("Sign-in error: $e");
       // Handle sign-in errors
     }
 
@@ -343,7 +303,6 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text("Sign out successful")));
     } catch (e) {
-      print("Sign-out error: $e");
       // Handle sign-out errors
     }
   }
@@ -368,16 +327,14 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
           style: ElevatedButton.styleFrom(
             elevation: 5,
             backgroundColor: whiteColor,
-            minimumSize: Size(double.infinity, 45),
-            // backgroundColor: Colors.blue,
-            primary: Colors.white,
+            minimumSize: const Size(double.infinity, 45),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(56.0),
             ),
             // side: BorderSide(color: Colors.blue),
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -390,7 +347,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                 const SizedBox(width: 10.0),
                 Text('Sign in with Google',
                     style: blackTextStyle.copyWith(fontSize: 15)),
-                SizedBox(
+                const SizedBox(
                   width: 8,
                 )
               ],

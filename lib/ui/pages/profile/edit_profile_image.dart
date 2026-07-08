@@ -1,13 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/image_service.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
-import 'package:flutter_ewallet/utils/ImageHandler.dart';
-import 'package:flutter_ewallet/utils/shared_values.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_ewallet/utils/shared_user.dart';
-import 'package:http/http.dart' as http;
-
-import '../../../models/user_model.dart';
 
 class EditProfileImagePage extends StatefulWidget {
   const EditProfileImagePage({Key? key}) : super(key: key);
@@ -17,8 +11,8 @@ class EditProfileImagePage extends StatefulWidget {
 }
 
 class _EditProfileImagePageState extends State<EditProfileImagePage> {
-  Image? _image;
-  File? _imageFile;
+  ImageProvider? _image;
+  XFile? _pickedFile;
 
   @override
   void initState() {
@@ -28,106 +22,55 @@ class _EditProfileImagePageState extends State<EditProfileImagePage> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedImage = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedImage != null) {
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
       setState(() {
-        _imageFile = File(pickedImage.path);
-        _image = Image.file(_imageFile!);
+        _pickedFile = picked;
+        _image = MemoryImage(bytes);
       });
     }
   }
 
   Future<void> _saveImage() async {
-    if (_imageFile != null) {
-      final response = await _sendImageToAPI(_imageFile!);
-      if (response['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Image saved successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save image'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please pick an image first'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (_pickedFile == null) {
+      _snack('Please pick an image first', Colors.red);
+      return;
     }
-  }
-
-  Future<Map<String, dynamic>> _sendImageToAPI(File imageFile) async {
-    int? userId;
-    final UserModel? user = await SharedUser().getCurrentUser();
-    if (user != null) {
-      print('User is not null');
-      userId = user.id;
-    }
-    final apiUrl = '${SharedValues.baseUrl}/image/user/$userId/profile-picture';
-    final request = http.MultipartRequest('POST', Uri.parse(apiUrl));
-    request.files
-        .add(await http.MultipartFile.fromPath('image', imageFile.path));
-    final response = await http.Response.fromStream(await request.send());
-
-    if (response.statusCode == 200) {
-      // If image upload successful, save the image in SharedUser
-      var newFile =
-          await ProfileImageHandler.saveProfileImage(Image.file(imageFile));
-
-      setState(() {
-        _imageFile = newFile;
-        _image = Image.file(newFile);
-      });
-    }
-    return {'success': response.statusCode == 200};
+    final ok = await ImageService.uploadAndSetProfileImage(_pickedFile!);
+    if (!mounted) return;
+    _snack(ok ? 'Image saved successfully' : 'Failed to save image',
+        ok ? Colors.green : Colors.red);
   }
 
   Future<void> _fetchProfileImage() async {
-    int? userId;
-    final UserModel? user = await SharedUser().getCurrentUser();
-    if (user != null) {
-      print('User is not null');
-      userId = user.id;
-    }
-    final apiUrl = '${SharedValues.baseUrl}/image/user/$userId/profile-picture';
-
     try {
-      final response = await http.get(Uri.parse(apiUrl));
-      print('REsponse from fetching image is $response');
-      if (response.statusCode == 200) {
-        final imageData = response.bodyBytes;
-        setState(() {
-          _image = Image.memory(imageData);
-        });
+      final url = await ImageService.currentProfileImageUrl();
+      if (url != null && mounted) {
+        setState(() => _image = NetworkImage(url));
       }
-    } catch (e) {
-      print('Error fetching profile image: $e');
+    } catch (_) {
+      // Keep the placeholder if the profile image can't be loaded.
     }
+  }
+
+  void _snack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile Image'),
-      ),
+      appBar: AppBar(title: const Text('Edit Profile Image')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
           Column(
             children: [
-              const SizedBox(
-                height: 40,
-              ),
+              const SizedBox(height: 40),
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
@@ -137,29 +80,19 @@ class _EditProfileImagePageState extends State<EditProfileImagePage> {
                     shape: BoxShape.circle,
                     color: Colors.grey[300],
                     image: _image != null
-                        ? DecorationImage(
-                            image: _image!.image,
-                            fit: BoxFit.cover,
-                          )
+                        ? DecorationImage(image: _image!, fit: BoxFit.cover)
                         : null,
                   ),
                   child: _image == null
-                      ? const Icon(
-                          Icons.add_a_photo,
-                          size: 40,
-                          color: Colors.white,
-                        )
+                      ? const Icon(Icons.add_a_photo, size: 40, color: Colors.white)
                       : null,
                 ),
               ),
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
               CustomFilledButton(
                 onPressed: _saveImage,
                 title: 'Save Image',
-                                width: 200,
-
+                width: 200,
               ),
             ],
           ),

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/ui/pages/sign-up/sign_up_verify_profile.dart';
@@ -24,6 +24,7 @@ class _SignUpSetProfilePageState extends State<SignUpSetProfilePage> {
   final pinController = TextEditingController(text: '');
 
   XFile? selectedImage;
+  Uint8List? selectedBytes;
 
   bool validate() {
     if (pinController.text.length != 6) {
@@ -72,8 +73,11 @@ class _SignUpSetProfilePageState extends State<SignUpSetProfilePage> {
                 GestureDetector(
                   onTap: () async {
                     final image = await selectImage();
+                    if (image == null) return;
+                    final bytes = await image.readAsBytes();
                     setState(() {
                       selectedImage = image;
+                      selectedBytes = bytes;
                     });
                   },
                   child: Container(
@@ -81,12 +85,10 @@ class _SignUpSetProfilePageState extends State<SignUpSetProfilePage> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: lightBackgroundColor,
-                      image: selectedImage == null
+                      image: selectedBytes == null
                           ? null
                           : DecorationImage(
-                              image: FileImage(
-                                File(selectedImage!.path),
-                              ),
+                              image: MemoryImage(selectedBytes!),
                               fit: BoxFit.cover,
                             ),
                     ),
@@ -132,9 +134,9 @@ class _SignUpSetProfilePageState extends State<SignUpSetProfilePage> {
                           builder: (context) => SignUpVerifyProfilePage(
                             data: widget.data.copyWith(
                               pin: pinController.text,
-                              profilePicture: selectedImage == null
+                              profilePicture: selectedBytes == null
                                   ? null
-                                  : 'data:image/png;base64${base64Encode(File(selectedImage!.path).readAsBytesSync())}',
+                                  : 'data:image/png;base64${base64Encode(selectedBytes!)}',
                             ),
                           ),
                         ),

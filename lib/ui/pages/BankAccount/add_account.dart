@@ -32,7 +32,6 @@ class _AddAccountPageState extends State<AddAccountPage> {
        int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       // print('valid');
@@ -45,10 +44,8 @@ class _AddAccountPageState extends State<AddAccountPage> {
       };
 
       try {
-        var response = await HttpService.postWithAuth('/BankAccounts', bankaccountData);
+        var response = await HttpService.postWithAuth('/bank-accounts', bankaccountData);
         if (response['message'] == 'Success') {
-          print('BankAccount Created Successfully');
-          print(response);
 
                                                           Fluttertoast.showToast(msg: 'Account created successfully!');
 
@@ -60,12 +57,10 @@ class _AddAccountPageState extends State<AddAccountPage> {
 
         // Handle response accordingly
       } catch (e) {
-        print('Error Caught');
                                                           Fluttertoast.showToast(msg: 'Error Occured');
 
 
         // Handle error
-        print(e);
       }
     } else {
       // Show error message if validation fails
@@ -87,7 +82,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
                               Image.asset('assets/add_bank.png', height: 331),
-                              SizedBox(height: 30,),
+                              const SizedBox(height: 30,),
         
               CustomTextField(
                 controller: nameController,

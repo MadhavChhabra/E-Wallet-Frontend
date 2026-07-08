@@ -32,15 +32,12 @@ class _QRCodeGeneratorState extends State<QRCodeGenerator> {
  int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       // Fetch IBANs list using user's id
       final response =
-          await HttpService.getWithAuth('/BankAccounts/users/$userId');
-      print(response);
+          await HttpService.getWithAuth('/bank-accounts/users/$userId');
       if (response['message'] == 'Success') {
-        print(response);
 
         List<String> ibans = [];
         List<String> names = [];
@@ -54,11 +51,9 @@ class _QRCodeGeneratorState extends State<QRCodeGenerator> {
         setState(() {
           fromBankAccountIbans = ibans;
           bankAccountNames = names;
-          print(fromBankAccountIbans.toString());
         });
       }
     } catch (error) {
-      print('Error fetching user bankaccounts: $error');
     }
   }
 

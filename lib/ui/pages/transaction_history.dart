@@ -32,22 +32,16 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       if (userId == null) {
-        print('User ID is null');
       } else {
         final response =
             await HttpService.getWithAuth('/transactions/users/$userId');
-        print('response is');
-        print(response);
         List<String> bankAccountIDs =
             await SharedUser().retrieveBankAccountIds();
-        print(bankAccountIDs.toString());
 
         if (response['message'] == 'Success') {
-          print(response);
 
           List<Transaction> transactions = [];
           List<dynamic> dataList = response['data']['content'];
@@ -114,7 +108,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
         }
       }
     } catch (error) {
-      print('Error fetching user transactions: $error');
     }
   }
 
@@ -150,7 +143,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       child: Container(
         // padding: EdgeInsets.only(top: 10),
         child: ListView(
-          physics: PageScrollPhysics(),
+          physics: const PageScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
             // SearchBar(hintText: "Search Transactions",textStyle: MaterialStatePropertyAll(whiteTextStyle),elevation: MaterialStatePropertyAll(1)),

@@ -45,15 +45,12 @@ class AddCardPageState extends State<AddCardPage> {
       int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       // Fetch IBANs list using user's id
       final response =
-          await HttpService.getWithAuth('/BankAccounts/users/$userId');
-      print(response);
+          await HttpService.getWithAuth('/bank-accounts/users/$userId');
       if (response['message'] == 'Success') {
-        print(response);
 
         List<String> ibans = [];
         List<dynamic> dataList = response['data'];
@@ -68,7 +65,6 @@ class AddCardPageState extends State<AddCardPage> {
         });
       }
     } catch (error) {
-      print('Error fetching user bankaccounts: $error');
     }
   }
 
@@ -76,20 +72,16 @@ class AddCardPageState extends State<AddCardPage> {
     try {
       // Fetch IBANs list using user's id
       final response =
-          await HttpService.getWithAuth('/BankAccounts/iban/$iban');
-      print(response);
+          await HttpService.getWithAuth('/bank-accounts/iban/$iban');
       if (response['message'] == 'Success') {
-        print(response);
 
         int id = response['data']['id'];
 
         setState(() {
           BankAccountID = id;
-          print("Bank Account ID is $id");
         });
       }
     } catch (error) {
-      print('Error fetching bankaccount id: $error');
     }
   }
 
@@ -145,7 +137,7 @@ backgroundImage: "assets/bg8.jpg",
                   Expanded(
                     child: SingleChildScrollView(
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 20,vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 8),
                         child: Column(
                           children: <Widget>[
                             CreditCardForm(
@@ -222,13 +214,9 @@ backgroundImage: "assets/bg8.jpg",
     int? userId;
     final UserModel? user = await SharedUser().getCurrentUser();
     if (user != null) {
-      print('User is not null');
       userId = user.id;
     }
-    print("The user id is $userId");
-    print("The bankAccountID id is $BankAccountID");
     if (formKey.currentState?.validate() ?? false) {
-      print('valid!');
 
       final cardData = {
         'cardHolderName': cardHolderName,
@@ -240,11 +228,8 @@ backgroundImage: "assets/bg8.jpg",
       };
 
       try {
-        print(cardData.toString());
-        var response = await HttpService.postWithAuth('/debitCards', cardData);
+        var response = await HttpService.postWithAuth('/cards', cardData);
         if (response['message'] == 'Success') {
-          print('Card Created Successfully');
-          print(response);
 
           Fluttertoast.showToast(msg: 'Card created successfully!');
 
@@ -255,14 +240,11 @@ backgroundImage: "assets/bg8.jpg",
 
         // Handle response accordingly
       } catch (e) {
-        print('Error Caught');
         Fluttertoast.showToast(msg: 'Error Occured');
 
         // Handle error
-        print(e);
       }
     } else {
-      print('invalid!');
     }
   }
 

@@ -1,17 +1,16 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
 
-import '../../../utils/shared_values.dart';
 import '../../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
 class ChangePassword extends StatelessWidget {
   final String email;
-  const ChangePassword({Key? key, required this.email}) : super(key: key);
+  final String otp;
+  const ChangePassword({Key? key, required this.email, required this.otp})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -20,34 +19,28 @@ class ChangePassword extends StatelessWidget {
         TextEditingController();
 
     Future<void> changePassword(String email, String newPassword) async {
+      if (newPassword.length < 6) {
+        Fluttertoast.showToast(msg: 'Password must be at least 6 characters');
+        return;
+      }
       try {
-        final response = await http.post(
-          Uri.parse('${SharedValues.baseForgot}/changePassword/$email'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-          body: jsonEncode(<String, String>{
-            'password': newPassword,
-            'repeatPassword': newPassword,
-          }),
+        final response = await HttpService.postWithoutAuth(
+          '/auth/password-reset/confirm',
+          {'email': email, 'otp': otp, 'newPassword': newPassword},
         );
 
-        if (response.statusCode == 200) {
+        if (response['message'] == 'Success') {
           Fluttertoast.showToast(msg: 'Password changed Successfully!');
-
+          if (!context.mounted) return;
           Navigator.pushNamedAndRemoveUntil(
               context, '/sign-in', (route) => false);
-        } else if (response.statusCode == 417) {
-          Fluttertoast.showToast(msg: 'Please enter your password again');
         } else {
-          // Handle other errors
-          Fluttertoast.showToast(msg: 'Error occured, please try again later');
+          Fluttertoast.showToast(
+              msg: response['message']?.toString() ??
+                  'Error occurred, please try again later');
         }
       } catch (e) {
-        // Handle any errors that occur during the request
-        print('Error changing password: $e');
-        // Show a generic error message
-        Fluttertoast.showToast(msg: 'Error occured, please try again later');
+        Fluttertoast.showToast(msg: 'Error occurred, please try again later');
       }
     }
 

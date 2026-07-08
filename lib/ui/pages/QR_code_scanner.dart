@@ -47,7 +47,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               height: 90,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(40),
                   topRight: Radius.circular(40),
                 ),
@@ -56,7 +56,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     color: Colors.grey.withOpacity(0.5),
                     spreadRadius: 2,
                     blurRadius: 7,
-                    offset: Offset(0, 3),
+                    offset: const Offset(0, 3),
                   ),
                 ],
                 border: Border.all(
@@ -93,7 +93,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             top: 40,
             right: 10,
             child: IconButton(
-              icon: Icon(Icons.qr_code_2_rounded),
+              icon: const Icon(Icons.qr_code_2_rounded),
                             iconSize: 28,
               color: whiteColor,
               onPressed: () => Navigator.of(context).pushNamed("/showAccountQR")
@@ -103,7 +103,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             top: 40,
             left: 10,
             child: IconButton(
-              icon: Icon(Icons.close_rounded),
+              icon: const Icon(Icons.close_rounded),
                             iconSize: 28,
 
               color: whiteColor,
@@ -120,7 +120,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     controller.scannedDataStream.listen((scanData) {
       setState(() {
         scannedText = scanData.code!;
-        print("THE SCANNED TEXT IS: ${scanData.code!}");
         Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(
             builder: (BuildContext context) =>

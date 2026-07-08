@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:local_auth/local_auth.dart';
@@ -30,19 +31,26 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<bool> _authenticateWithBiometrics() async {
-    final LocalAuthentication auth = LocalAuthentication();
-    bool didAuthenticate = await auth.authenticate(
-        options: AuthenticationOptions(
-          sensitiveTransaction: true,
-          stickyAuth: true,
-        ),
-        localizedReason: 'Please authenticate to proceed');
-    return didAuthenticate;
+    // Biometrics aren't available on web (and may be absent on some devices);
+    // don't block the session on it.
+    if (kIsWeb) return true;
+    try {
+      final LocalAuthentication auth = LocalAuthentication();
+      if (!await auth.isDeviceSupported()) return true;
+      return await auth.authenticate(
+          options: const AuthenticationOptions(
+            sensitiveTransaction: true,
+            stickyAuth: true,
+          ),
+          localizedReason: 'Please authenticate to proceed');
+    } catch (_) {
+      // If biometrics fail/unavailable, fall through rather than trapping the user.
+      return true;
+    }
   }
 
   _checkLoginStatus() async {
     String? refreshToken = await SharedUser().getRefreshToken();
-    print("REFRESH TOKEN IS: " + refreshToken.toString());
     if (refreshToken != null) {
       _isLoggedIn = true;
     }

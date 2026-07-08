@@ -7,6 +7,8 @@ import '../../utils/theme.dart';
 import 'card/pick_a_card.dart';
 
 class CustomBottomNavigation extends StatefulWidget {
+  const CustomBottomNavigation({super.key});
+
   @override
   _CustomBottomNavigationState createState() => _CustomBottomNavigationState();
 }
@@ -24,9 +26,9 @@ class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      Homepage(),
-      TransactionHistoryPage(),
-      SelectCard(),
+      const Homepage(),
+      const TransactionHistoryPage(),
+      const SelectCard(),
       // RewardPage(),
     ];
 
@@ -51,8 +53,8 @@ class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: PageView(
         controller: _pageController,
-        children: pages,
-        physics: const NeverScrollableScrollPhysics(), // Prevent swiping
+        physics: const NeverScrollableScrollPhysics(),
+        children: pages, // Prevent swiping
       ),
       bottomNavigationBar: AnimatedBottomNavigationBar(
         backgroundColor: whiteColor,

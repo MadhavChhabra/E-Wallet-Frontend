@@ -16,9 +16,7 @@ class _PinPageState extends State<PinPage> {
 
   Future<String> getPin() async {
     String? pin = await SharedUser().getSecurityPin();
-    print("Security Pin is : " + pin.toString());
     if (pin == null) {
-      print("NULLL PIN");
       return "111111";
     } else {
       return pin;
@@ -36,7 +34,6 @@ class _PinPageState extends State<PinPage> {
       if (pinController.text.length == 6 && pinController.text == await getPin()) {
         Navigator.pop(context, true);
       } else {
-        print(pinController.text);
         showCustomSnackBar(context, 'Wrong PIN. Please Try Again');
       }
     }

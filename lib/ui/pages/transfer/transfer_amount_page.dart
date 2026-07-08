@@ -66,22 +66,18 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
 
     try {
       final response = await HttpService.postWithAuth(
-          '/BankAccounts/transfer', transferData);
-      print('amount transfer response is');
-      print(response);
+          '/bank-accounts/transfer', transferData);
 
       if (response['message'] == 'Success') {
         // If successful, navigate to success page
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (context)=> LoadingAnimationScreen())
+          MaterialPageRoute(builder: (context)=> const LoadingAnimationScreen())
             );
       } else {
         // Handle other status codes here
-        print('Failed to send transfer data. Status code: $response');
       }
     } catch (error) {
       // Handle any errors that occur during the process
-      print('Error sending transfer data: $error');
     }
   }
 
@@ -111,7 +107,7 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
     return Scaffold(
       backgroundColor: darkBackgroundColor,
       body: Container(
-        padding: EdgeInsets.only(top: 80,left: 76,right: 55),
+        padding: const EdgeInsets.only(top: 80,left: 76,right: 55),
         alignment: Alignment.center,
         child: ListView(
           

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +29,7 @@ class SignUpVerifyProfilePage extends StatefulWidget {
 
 class _SignUpVerifyProfilePageState extends State<SignUpVerifyProfilePage> {
   XFile? selectedImage;
+  Uint8List? selectedBytes;
 
   bool validate() {
     if (selectedImage == null) {
@@ -95,8 +96,11 @@ class _SignUpVerifyProfilePageState extends State<SignUpVerifyProfilePage> {
                     GestureDetector(
                       onTap: () async {
                         final image = await selectImage();
+                        if (image == null) return;
+                        final bytes = await image.readAsBytes();
                         setState(() {
                           selectedImage = image;
+                          selectedBytes = bytes;
                         });
                       },
                       child: Container(
@@ -104,12 +108,10 @@ class _SignUpVerifyProfilePageState extends State<SignUpVerifyProfilePage> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: lightBackgroundColor,
-                          image: selectedImage == null
+                          image: selectedBytes == null
                               ? null
                               : DecorationImage(
-                                  image: FileImage(
-                                    File(selectedImage!.path),
-                                  ),
+                                  image: MemoryImage(selectedBytes!),
                                   fit: BoxFit.cover,
                                 ),
                         ),
@@ -143,12 +145,9 @@ class _SignUpVerifyProfilePageState extends State<SignUpVerifyProfilePage> {
                           context.read<AuthBloc>().add(
                                 AuthRegister(
                                   widget.data.copyWith(
-                                    ktp: selectedImage == null
+                                    ktp: selectedBytes == null
                                         ? null
-                                        : 'data:image/png;base64,+${base64Encode(
-                                            File(selectedImage!.path)
-                                                .readAsBytesSync(),
-                                          )}',
+                                        : 'data:image/png;base64,+${base64Encode(selectedBytes!)}',
                                   ),
                                 ),
                               );

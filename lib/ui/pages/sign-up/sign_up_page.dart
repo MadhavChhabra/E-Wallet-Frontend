@@ -33,15 +33,8 @@ class _SignUpPageState extends State<SignUpPage> {
     final email = emailController.text;
     final password = passwordController.text;
 
-    print('Signing up with username: $username, password: $password');
 
     try {
-      print('Signing up with ');
-      print(firstname);
-      print(lastname);
-      print(username);
-      print(email);
-      print(password);
       final response = await http.post(
         Uri.parse(url),
         body: jsonEncode({
@@ -55,8 +48,6 @@ class _SignUpPageState extends State<SignUpPage> {
         headers: {'Content-Type': 'application/json'},
       );
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 201) {
         const SnackBar(
@@ -68,7 +59,6 @@ class _SignUpPageState extends State<SignUpPage> {
         );
       }
     } catch (e) {
-      print('Exception during sign-in: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign in failed')),
       );

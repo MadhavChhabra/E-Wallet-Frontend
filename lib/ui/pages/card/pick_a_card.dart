@@ -42,12 +42,11 @@ class _SelectCardState extends State<SelectCard> {
  int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
     try {
       final response =
-          await HttpService.getWithAuth('/debitCards/user/$userId');
+          await HttpService.getWithAuth('/cards');
       if (response['message'] == 'Success') {
         final List<Map<String, dynamic>> cardsData =
             List<Map<String, dynamic>>.from(response['data']);
@@ -70,7 +69,6 @@ class _SelectCardState extends State<SelectCard> {
         throw Exception('Failed to load data');
       }
     } catch (e) {
-      print('Error: $e');
     }
   }
 

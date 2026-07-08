@@ -1,282 +1,188 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
-// import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
-// import 'package:flutter_ewallet/utils/shared_user.dart';
-// import 'package:flutter_ewallet/utils/theme.dart';
-// import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/payment_service.dart';
+import 'package:flutter_ewallet/services/razorpay/razorpay_checkout.dart';
+import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
+import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
+import 'package:flutter_ewallet/utils/shared_values.dart';
+import 'package:flutter_ewallet/utils/theme.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
-// import '../../../services/http_service.dart';
+/// Wallet top-up via Razorpay.
+///
+/// Flow: enter an amount → the backend creates a Razorpay order → the Checkout
+/// opens (native SDK on mobile, Razorpay JS on web) → on success the signed
+/// result is verified server-side, which credits the wallet.
+class TopUpAmountPage extends StatefulWidget {
+  const TopUpAmountPage({super.key});
 
-// class TopUpAmountPage extends StatefulWidget {
-//   const TopUpAmountPage({super.key});
+  @override
+  State<TopUpAmountPage> createState() => _TopUpAmountPageState();
+}
 
-//   @override
-//   State<TopUpAmountPage> createState() => _TopUpAmountPageState();
-// }
+class _TopUpAmountPageState extends State<TopUpAmountPage> {
+  final TextEditingController amountController =
+      TextEditingController(text: '0');
 
-// class _TopUpAmountPageState extends State<TopUpAmountPage> {
-//   final TextEditingController amountController =
-//       TextEditingController(text: '0');
+  final RazorpayCheckout _checkout = RazorpayCheckout();
+  bool _processing = false;
+  String? _walletIban;
 
-//   @override
-//   void initState() {
-//     super.initState();
+  @override
+  void dispose() {
+    _checkout.dispose();
+    amountController.dispose();
+    super.dispose();
+  }
 
-//     amountController.addListener(
-//       () {
-//         final text = amountController.text;
+  Future<void> _startCheckout() async {
+    final amount = double.tryParse(amountController.text) ?? 0;
+    if (amount < 1) {
+      _toast('Please enter an amount of at least Rs 1');
+      return;
+    }
 
-//         amountController.value = amountController.value.copyWith(
-//           text: NumberFormat.currency(
-//             locale: 'id',
-//             decimalDigits: 0,
-//             symbol: '',
-//           ).format(
-//             int.parse(
-//               text.replaceAll('.', ''),
-//             ),
-//           ),
-//         );
-//       },
-//     );
-//   }
+    setState(() => _processing = true);
+    try {
+      _walletIban ??= await PaymentService.primaryWalletIban();
+      if (_walletIban == null) {
+        _toast('Add a wallet account before topping up');
+        return;
+      }
 
-//   Future<void> addFunds() async {
-//     if (amountController.text.isNotEmpty) {
-//       // print('valid');
-//       final addFundData = {
-//         'amount': amountController.text,
-//         'bankAccountIban': 'AE960217894311837416168',
-//         'userId': SharedUser().getUserId(), // Convert to Long
-//       };
+      final order = await PaymentService.createOrder(
+        amount: amount,
+        toBankAccountIban: _walletIban!,
+      );
 
-//       try {
-//         var response =
-//             await HttpService.postWithAuth('/wallets/addFunds', addFundData);
-//         if (response['message'] == 'Success') {
-//           print('Funds Added Successfully');
-//           print(response);
+      _checkout.open(
+        RazorpayOptions(
+          keyId: (order['keyId'] ?? SharedValues.razorpayKeyId).toString(),
+          orderId: order['orderId'].toString(),
+          amountInPaise: (order['amountInPaise'] as num).toInt(),
+          currency: (order['currency'] ?? 'INR').toString(),
+        ),
+        onSuccess: _handlePaymentSuccess,
+        onError: (message) => _toast(message),
+      );
+    } catch (e) {
+      _toast(_friendlyError(e));
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
 
-//           ScaffoldMessenger.of(context).showSnackBar(
-//               const SnackBar(content: Text('Funds Added Successfully')));
+  Future<void> _handlePaymentSuccess(RazorpayResult result) async {
+    try {
+      await PaymentService.verifyPayment(
+        orderId: result.orderId,
+        paymentId: result.paymentId,
+        signature: result.signature,
+      );
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/topup-success', (r) => false);
+    } catch (e) {
+      _toast('Payment captured but verification failed: ${_friendlyError(e)}');
+    }
+  }
 
-//           Navigator.of(context).pop((route) => false);
-//         }
+  void _toast(String message) {
+    Fluttertoast.showToast(msg: message);
+  }
 
-//         // print('doing it');
+  String _friendlyError(Object e) {
+    final msg = e.toString().replaceFirst('Exception: ', '');
+    return msg.isEmpty ? 'Something went wrong' : msg;
+  }
 
-//         // Handle response accordingly
-//       } catch (e) {
-//         print('Error Caught');
-//         ScaffoldMessenger.of(context)
-//             .showSnackBar(const SnackBar(content: Text('Error Occured')));
+  void _addAmount(String number) {
+    if (amountController.text == '0') {
+      amountController.text = '';
+    }
+    setState(() => amountController.text = amountController.text + number);
+  }
 
-//         // Handle error
-//         print(e);
-//       }
-//     } else {
-//       // Show error message if validation fails
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text('Please fill in all fields')),
-//       );
-//     }
-//   }
+  void _deleteAmount() {
+    if (amountController.text.isNotEmpty) {
+      setState(() {
+        amountController.text =
+            amountController.text.substring(0, amountController.text.length - 1);
+        if (amountController.text.isEmpty) {
+          amountController.text = '0';
+        }
+      });
+    }
+  }
 
-
-//   addAmount(String number) {
-//     if (amountController.text == '0') {
-//       amountController.text = '';
-//     }
-//     setState(() {
-//       amountController.text = amountController.text + number;
-//     });
-//   }
-
-//   deleteAmount() {
-//     if (amountController.text.isNotEmpty) {
-//       setState(() {
-//         amountController.text = amountController.text
-//             .substring(0, amountController.text.length - 1);
-//         if (amountController.text == '') {
-//           amountController.text = '0';
-//         }
-//       });
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: darkBackgroundColor,
-//       body: SafeArea(
-//         child: ListView(
-//           padding: const EdgeInsets.symmetric(horizontal: 58),
-//           children: [
-//             Center(
-//               child: Text(
-//                 'Total Amount',
-//                 style: whiteTextStyle.copyWith(
-//                   fontSize: 20,
-//                   fontWeight: semiBold,
-//                 ),
-//               ),
-//             ),
-//             const SizedBox(
-//               height: 65,
-//             ),
-//             Align(
-//               child: SizedBox(
-//                 width: 200,
-//                 child: TextFormField(
-//                   controller: amountController,
-//                   cursorColor: greyColor,
-//                   enabled: false,
-//                   style: whiteTextStyle.copyWith(
-//                     fontSize: 32,
-//                     fontWeight: medium,
-//                   ),
-//                   decoration: InputDecoration(
-//                     prefixIcon: Text(
-//                       'Rs',
-//                       style: whiteTextStyle.copyWith(
-//                         fontSize: 32,
-//                         fontWeight: medium,
-//                       ),
-//                     ),
-//                     disabledBorder: UnderlineInputBorder(
-//                       borderSide: BorderSide(
-//                         color: greyColor,
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//             const SizedBox(
-//               height: 66,
-//             ),
-//             Wrap(
-//               spacing: 40,
-//               runSpacing: 40,
-//               children: [
-//                 CustomInputPinButton(
-//                   text: '1',
-//                   onTap: () {
-//                     addAmount('1');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '2',
-//                   onTap: () {
-//                     addAmount('2');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '3',
-//                   onTap: () {
-//                     addAmount('3');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '4',
-//                   onTap: () {
-//                     addAmount('4');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '5',
-//                   onTap: () {
-//                     addAmount('5');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '6',
-//                   onTap: () {
-//                     addAmount('6');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '7',
-//                   onTap: () {
-//                     addAmount('7');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '8',
-//                   onTap: () {
-//                     addAmount('8');
-//                   },
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '9',
-//                   onTap: () {
-//                     addAmount('9');
-//                   },
-//                 ),
-//                 const SizedBox(
-//                   height: 60,
-//                   width: 60,
-//                 ),
-//                 CustomInputPinButton(
-//                   text: '0',
-//                   onTap: () {
-//                     addAmount('0');
-//                   },
-//                 ),
-//                 GestureDetector(
-//                   onTap: () {
-//                     deleteAmount();
-//                   },
-//                   child: Container(
-//                     width: 60,
-//                     height: 60,
-//                     decoration: BoxDecoration(
-//                       shape: BoxShape.circle,
-//                       color: numberBackgroundColor,
-//                     ),
-//                     child: Center(
-//                       child: Icon(
-//                         Icons.arrow_back,
-//                         color: whiteColor,
-//                       ),
-//                     ),
-//                   ),
-//                 )
-//               ],
-//             ),
-//             const SizedBox(
-//               height: 50,
-//             ),
-//             CustomFilledButton(
-//               title: 'Checkout Now',
-//               onPressed: addFunds,
-//             ),
-//             const SizedBox(
-//               height: 25,
-//             ),
-//             CustomTextButton(
-//               title: 'Term & Conditions',
-//               onPressed: () {},
-//             ),
-//             const SizedBox(
-//               height: 40,
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-
-//   // final Uri _url = Uri.parse('https://demo.midtrans.com/');
-
-//   // Future<void> _launchUrl() async {
-//   //   if (await Navigator.pushNamed(context, '/pin') == true) {
-//   //     // launchUrl(_url);
-//   //     Navigator.pushNamedAndRemoveUntil(
-//   //         context, '/topup-success', (route) => false);
-//   //     // } else if (await  ==
-//   //     //     true) {
-//   //     //   throw Exception('Could not launch $_url');
-//   //   }
-//   // }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: darkBackgroundColor,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 58),
+          children: [
+            const SizedBox(height: 30),
+            Center(
+              child: Text(
+                'Total Amount',
+                style: whiteTextStyle.copyWith(fontSize: 20, fontWeight: semiBold),
+              ),
+            ),
+            const SizedBox(height: 50),
+            Align(
+              child: SizedBox(
+                width: 220,
+                child: TextFormField(
+                  controller: amountController,
+                  cursorColor: greyColor,
+                  enabled: false,
+                  style: whiteTextStyle.copyWith(fontSize: 32, fontWeight: medium),
+                  decoration: InputDecoration(
+                    prefixIcon: Text(
+                      'Rs ',
+                      style: whiteTextStyle.copyWith(fontSize: 32, fontWeight: medium),
+                    ),
+                    disabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: greyColor),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 50),
+            Wrap(
+              spacing: 40,
+              runSpacing: 40,
+              children: [
+                for (final n in ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+                  CustomInputPinButton(text: n, onTap: () => _addAmount(n)),
+                const SizedBox(height: 60, width: 60),
+                CustomInputPinButton(text: '0', onTap: () => _addAmount('0')),
+                GestureDetector(
+                  onTap: _deleteAmount,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: numberBackgroundColor,
+                    ),
+                    child: Center(child: Icon(Icons.arrow_back, color: whiteColor)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 50),
+            _processing
+                ? const Center(child: CircularProgressIndicator())
+                : CustomFilledButton(
+                    title: 'Pay with Razorpay',
+                    onPressed: _startCheckout,
+                  ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+}

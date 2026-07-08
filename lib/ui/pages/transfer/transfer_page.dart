@@ -27,9 +27,7 @@ class _TransferPageState extends State<TransferPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.receiverIban != null) {
         toIbanController.text = widget.receiverIban!;
-        print("NOOOOOTTT NULLLLLLL");
       } else {
-        print("SET STATE MEIN HI NULL");
       }
     });
   }
@@ -39,15 +37,12 @@ class _TransferPageState extends State<TransferPage> {
       int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       // Fetch IBANs list using user's id
       final response =
-          await HttpService.getWithAuth('/BankAccounts/users/$userId');
-      print(response);
+          await HttpService.getWithAuth('/bank-accounts/users/$userId');
       if (response['message'] == 'Success') {
-        print(response);
 
         List<String> ibans = [];
         List<dynamic> dataList = response['data'];
@@ -58,11 +53,9 @@ class _TransferPageState extends State<TransferPage> {
 
         setState(() {
           fromBankAccountIbans = ibans;
-          print(fromBankAccountIbans.toString());
         });
       }
     } catch (error) {
-      print('Error fetching user bankaccounts: $error');
     }
   }
 
@@ -81,9 +74,7 @@ class _TransferPageState extends State<TransferPage> {
 
     if (receiverIban != null) {
       toIbanController.text = receiverIban;
-      print("SUCCESSFULLY PLANTED");
     } else {
-      print("BHAIIIII NULLLLL");
     }
     return Scaffold(
       appBar: AppBar(
@@ -168,7 +159,7 @@ class _TransferPageState extends State<TransferPage> {
                       ),
                     );
                   
-                };
+                }
               } else {
                 // Handle case when no IBAN is selected
                 showDialog(

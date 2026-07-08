@@ -1,0 +1,59 @@
+name: Deploy Web Demo (GitHub Pages)
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+# Allow this workflow to publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Project pages are served under /<repo>/, so base-href must match.
+      # API_BASE_URL and RAZORPAY_KEY_ID come from repo variables (Settings ->
+      # Secrets and variables -> Actions -> Variables). Fallbacks keep it building.
+      - name: Build web
+        run: |
+          flutter build web --release \
+            --base-href "/${GITHUB_REPOSITORY#*/}/" \
+            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://example.com' }} \
+            --dart-define=RAZORPAY_KEY_ID=${{ vars.RAZORPAY_KEY_ID || '' }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -11,9 +11,7 @@ class EditProfilePinPage extends StatelessWidget {
 
   Future<String> getPin() async {
     String? pin = await SharedUser().getSecurityPin();
-    print("Security Pin is : " + pin.toString());
     if (pin == null) {
-      print("NULLL PIN");
       return "111111";
     } else {
       return pin;
@@ -77,7 +75,7 @@ class EditProfilePinPage extends StatelessWidget {
                               '/profile-edit-success', (route) => false);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Old Pin is Incorrect")));
+                              const SnackBar(content: Text("Old Pin is Incorrect")));
                         }
                       },
                     ),

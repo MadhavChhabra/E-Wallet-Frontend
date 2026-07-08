@@ -10,13 +10,12 @@ import 'package:flutter_ewallet/utils/shared.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../../models/article_model.dart';
 import '../../services/http_service.dart';
+import '../../services/image_service.dart';
 import '../../services/news_api_service.dart';
-import '../../utils/shared_values.dart';
 import '../widgets/custom_wallet_card.dart';
 
 class TransactionListWidget extends StatefulWidget {
@@ -70,22 +69,16 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
       int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       if (userId == null) {
-        print('User ID is null');
       } else {
         final response =
             await HttpService.getWithAuth('/transactions/users/$userId');
-        print('response is');
-        print(response);
         List<String> bankAccountIDs =
             await SharedUser().retrieveBankAccountIds();
-        print(bankAccountIDs.toString());
 
         if (response['message'] == 'Success') {
-          print(response);
 
           List<Transaction> transactions = [];
           List<dynamic> dataList = response['data']['content'];
@@ -95,8 +88,6 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
                 ? double.tryParse(item['amount'].toString())
                 : null;
             String createdAtString = item['createdAt'];
-            print(item['amount'].toString());
-            print(double.tryParse(item['amount'].toString()).toString());
 
             // Check if createdAtString is not null before parsing
             DateTime createdAtDateTime = parseCustomDateTime(createdAtString);
@@ -154,7 +145,6 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
               if (transaction.title == 'Withdrawal' ||
                   transaction.title == 'Transfer') {
                 totalSpent += amount;
-                print("TOTAL SPENT UPDATED::: ${totalSpent.toDouble()}");
               } else {
                 totalSpent = totalSpent;
               }
@@ -173,7 +163,6 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
         }
       }
     } catch (error) {
-      print('Error fetching user transactions: $error');
     }
   }
 
@@ -193,7 +182,7 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
                 fontWeight: semiBold,
               ),
             ),
-            !latestTransactions.isEmpty
+            latestTransactions.isNotEmpty
                 ? Container(
                     margin: const EdgeInsets.only(top: 14),
                     padding: const EdgeInsets.all(22),
@@ -215,7 +204,7 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
                   )
                 : Container(
                     color: whiteColor,
-                    padding: EdgeInsets.symmetric(vertical: 50, horizontal: 50),
+                    padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 50),
                     child: Center(
                         child: Text(
                       "Your Latest Transactions will be shown here",
@@ -253,14 +242,11 @@ class _AccountsWidgetState extends State<AccountsWidget> {
     try {
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
-        naam = user.firstname.toString() + " " + user.lastname.toString();
+        naam = "${user.firstname} ${user.lastname}";
       }
       final response =
-          await HttpService.getWithAuth('/BankAccounts/users/$userId');
-      print("getting the account response");
-      print(response);
+          await HttpService.getWithAuth('/bank-accounts/users/$userId');
 
       for (var account in response['data']) {
         final accountId = account['id'].toString();
@@ -270,13 +256,11 @@ class _AccountsWidgetState extends State<AccountsWidget> {
       }
 
       setState(() {
-        print("Got the account response");
         data = response['data'];
         loading = false;
         fullName = naam;
       });
     } catch (e) {
-      print('Error fetching Accounts data: $e');
       setState(() {
         loading = false;
       });
@@ -379,23 +363,17 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
       int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
 
       if (userId == null) {
-        print('User ID is null');
       } else {
         final response =
             await HttpService.getWithAuth('/transactions/users/$userId');
-        print('User response is');
 
         if (response['message'] == 'Success') {
-          print(response);
 
           List<dynamic> dataList = response['data']['content'];
-          print("datalist is ");
-          print(dataList.toList().toString());
 
           for (var item in dataList) {
             String username =
@@ -417,27 +395,13 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
         }
       }
     } catch (error) {
-      print('Error fetching users: $error');
     }
   }
 
   Future<Image?> _fetchProfileImagebyID(int id) async {
-    print("GOING THERE");
-    int userId = id;
-
-    final apiUrl = '${SharedValues.baseUrl}/image/user/$userId/profile-picture';
-
-    try {
-      final response = await http.get(Uri.parse(apiUrl));
-      print('REsponse from fetching image is $response');
-      if (response.statusCode == 200) {
-        final imageData = response.bodyBytes;
-
-        return Image.memory(imageData);
-      }
-    } catch (e) {
-      print('Error fetching profile image: $e');
-    }
+    // The backend only exposes the *current* user's profile image, so avatars
+    // for other users fall back to the placeholder.
+    return null;
   }
 
   @override
@@ -461,18 +425,18 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
             fontWeight: semiBold,
           ),
         ),
-        !sendList.isEmpty
+        sendList.isNotEmpty
             ? Container(
-                margin: EdgeInsets.only(left: 7, right: 7, bottom: 14, top: 10),
+                margin: const EdgeInsets.only(left: 7, right: 7, bottom: 14, top: 10),
                 height: gridHeight + 10, // Use calculated grid height
-                padding: EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.only(top: 10),
                 // padding: const EdgeInsets.only(right: 22, left: 22, bottom: 22),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   color: whiteColor,
                 ),
                 width: MediaQuery.of(context).size.width,
-                child: !sendList.isEmpty
+                child: sendList.isNotEmpty
                     ? GridView.builder(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: numberOfColumns,
@@ -491,7 +455,7 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
               )
             : Container(
                 color: whiteColor,
-                padding: EdgeInsets.symmetric(vertical: 50, horizontal: 50),
+                padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 50),
                 child: Center(
                     child: Text(
                   "Kindly Make any payments",
@@ -538,21 +502,16 @@ class _HomepageState extends State<Homepage> {
   void fetchData() async {
     final UserModel? user = await SharedUser().getCurrentUser();
     if (user != null) {
-      print('User is not null');
       String? firstName = user.firstname;
       String? lastName = user.lastname;
 
       if (firstName != null && lastName != null) {
-        print('User firstname and lastname not null');
 
         setState(() {
           name = firstName;
-          print(name);
-          print(lastName);
           lastname = lastName;
         });
       } else {
-        print('FS and LS null');
       }
     }
   }
@@ -578,31 +537,15 @@ class _HomepageState extends State<Homepage> {
   // }
 
   Future<void> _fetchProfileImage() async {
-    final UserModel? user = await SharedUser().getCurrentUser();
-    int? userId;
-    if (user != null) {
-      print('User is not null');
-      userId = user.id;
-    }
-    final apiUrl = '${SharedValues.baseUrl}/image/user/$userId/profile-picture';
-
     try {
-      final response = await http.get(Uri.parse(apiUrl));
-      print('REsponse from fetching image is ${response.bodyBytes}');
-      print('STATUS CODE: ${response.statusCode}');
-      if (response.statusCode == 200) {
-        print("DOING IT");
-        final imageData = response.bodyBytes;
+      final url = await ImageService.currentProfileImageUrl();
+      if (url != null && mounted) {
         setState(() {
-          print("DONEE");
-          _profileImage = Image.memory(imageData);
+          _profileImage = Image.network(url);
         });
       }
-
-      setState(() {});
-      // }
     } catch (e) {
-      print('Error fetching profile image: $e');
+      // Keep the placeholder if the profile image can't be loaded.
     }
   }
 
@@ -693,7 +636,6 @@ class _HomepageState extends State<Homepage> {
   Widget buildProgressLevel() {
     double totalSpent = ProgressSpent;
     // Determine the level and progress based on totalSpent
-    print("TOTAL RECIEVED IS::: $totalSpent");
     int level = (totalSpent ~/ 10000) + 1;
     int levelCap = level * 10000;
     double progress = totalSpent / levelCap;
@@ -765,14 +707,14 @@ class _HomepageState extends State<Homepage> {
               case 2:
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SelectCard()),
+                  MaterialPageRoute(builder: (context) => const SelectCard()),
                 );
                 break;
               case 1:
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => TransactionHistoryPage()),
+                      builder: (context) => const TransactionHistoryPage()),
                 );
                 break;
               case 3:

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
@@ -20,13 +21,46 @@ class SignInPage extends StatefulWidget {
 class _SignInPageState extends State<SignInPage> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+  bool _demoLoading = false;
+
+  /// One-click demo: provisions a pre-populated account server-side and lands
+  /// the visitor on a filled dashboard.
+  Future<void> _startDemo() async {
+    setState(() => _demoLoading = true);
+    try {
+      final response = await HttpService.postWithoutAuth('/auth/demo', {});
+      final data = response['data'];
+      final token = data is Map ? data['token'] : null;
+      if (response['message'] == 'Success' && token != null && token.toString().isNotEmpty) {
+        SharedUser().updateLoggedInState(true);
+        await SharedUser().writeToStorage('token', token);
+        await SharedUser().writeToStorage('refreshToken', data['refreshToken']);
+        await SharedUser().writeToStorage('user', jsonEncode(data));
+        SharedUser().clearCachedUser();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      } else {
+        _showDemoError();
+      }
+    } catch (_) {
+      _showDemoError();
+    } finally {
+      if (mounted) setState(() => _demoLoading = false);
+    }
+  }
+
+  void _showDemoError() {
+    if (!mounted) return;
+    showTopSnackBar(
+      Overlay.of(context),
+      const CustomSnackBar.error(message: 'Demo is unavailable right now. Please try again.'),
+    );
+  }
 
   Future<void> signIn() async {
     const url = '${SharedValues.baseUrl}/auth/login';
-    final username = usernameController.text;
+    final username = usernameController.text.trim();
     final password = passwordController.text;
-
-    print('Signing in with username: $username, password: $password');
 
     try {
       final response = await http.post(
@@ -38,26 +72,17 @@ class _SignInPageState extends State<SignInPage> {
         headers: {'Content-Type': 'application/json'},
       );
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         SharedUser().updateLoggedInState(true);
         final responseData = jsonDecode(response.body);
-        print(responseData);
         final data = responseData['data'];
         final token = data['token'];
-        final Refreshtoken = data['refreshToken'];
-        print(token);
+        final refreshToken = data['refreshToken'];
 
         if (token != null && token.isNotEmpty) {
           SharedUser().writeToStorage('token', token);
-          SharedUser().writeToStorage('refreshToken', Refreshtoken);
+          SharedUser().writeToStorage('refreshToken', refreshToken);
           SharedUser().writeToStorage('user', jsonEncode(data));
-
-          print('Token Stored');
-        } else {
-          print('Token is null');
         }
 
         showTopSnackBar(
@@ -84,7 +109,6 @@ class _SignInPageState extends State<SignInPage> {
         );
       }
     } catch (e) {
-      print('Exception during sign-in: $e');
     }
   }
 
@@ -147,6 +171,17 @@ class _SignInPageState extends State<SignInPage> {
                   title: 'Sign In',
                   onPressed: signIn,
                 ),
+                const SizedBox(height: 10),
+                // One-click demo — no signup needed; lands on a filled dashboard.
+                _demoLoading
+                    ? const Center(child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
+                      ))
+                    : CustomTextButton(
+                        title: '🚀 Explore Live Demo',
+                        onPressed: _startDemo,
+                      ),
                 const SizedBox(height: 10),
                 
                 // GoogleSignInWidget()

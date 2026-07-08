@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/ui/pages/forgotPassword/verify_otp.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
-
-import '../../../utils/shared_values.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
-  ForgotPasswordPage({Key? key}) : super(key: key);
+  const ForgotPasswordPage({Key? key}) : super(key: key);
 
   @override
   _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
@@ -24,30 +22,27 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _isLoading = true;
     });
     try {
-      final response = await http.post(
-          Uri.parse('${SharedValues.baseForgot}/verifyMail/$email'));
-      print(response.body.toString());
-      if (response.statusCode == 200) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => VerifyOTP(recievedEmail: email),
-        ));
-      } else if (response.statusCode == 409) {
-        Fluttertoast.showToast(msg: 'OTP Already Sent');
+      // The backend always responds success (it does not reveal whether the
+      // email is registered), then emails an OTP if it is.
+      final response = await HttpService.postWithoutAuth(
+          '/auth/password-reset/request', {'email': email});
+      if (!mounted) return;
+      if (response['message'] == 'Success') {
         Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => VerifyOTP(recievedEmail: email),
         ));
       } else {
-        Fluttertoast.showToast(msg: 'Email does not exist!');
+        Fluttertoast.showToast(
+            msg: response['message']?.toString() ?? 'Unable to send reset code');
       }
     } catch (e) {
-      print('Error verifying email: $e');
-      // Show a generic error message
-      Fluttertoast.showToast(
-          msg: 'An error occurred while verifying email');
+      Fluttertoast.showToast(msg: 'An error occurred while requesting the code');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -113,11 +108,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           _isLoading
               ? Container(
                   color: Colors.black.withOpacity(0.5),
-                  child: Center(
+                  child: const Center(
                     child: CircularProgressIndicator(),
                   ),
                 )
-              : SizedBox(),
+              : const SizedBox(),
         ],
       ),
     );

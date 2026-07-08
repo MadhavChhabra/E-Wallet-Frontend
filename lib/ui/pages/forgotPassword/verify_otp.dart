@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/ui/pages/forgotPassword/change_password.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:pinput/pinput.dart';
-
-import '../../../utils/shared_values.dart';
 
 class VerifyOTP extends StatefulWidget {
   final String recievedEmail;
@@ -30,31 +28,27 @@ class _VerifyOTPState extends State<VerifyOTP> {
 
   Future<void> verifyOTP(String otp, String email) async {
     try {
-      final response = await http
-          .post(Uri.parse('${SharedValues.baseForgot}/verifyOtp/$otp/$email'));
-      if (response.statusCode == 200) {
-        // OTP verified, navigate to change password screen
-        // Add navigation logic to change password screen here
+      final response = await HttpService.postWithoutAuth(
+          '/auth/password-reset/verify', {'email': email, 'otp': otp});
+      if (!mounted) return;
+      if (response['message'] == 'Success') {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('OTP Verified!'),
         ));
         Navigator.of(context).push(MaterialPageRoute(
             builder: ((context) => ChangePassword(
                   email: email,
+                  otp: otp,
                 ))));
-      } else if (response.statusCode == 417) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('OTP has expired!'),
-        ));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Invalid OTP. Please try again.'),
+        setState(() => showError = true);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(response['message']?.toString() ??
+              'Invalid or expired code. Please try again.'),
         ));
       }
     } catch (e) {
-      // Handle any errors that occur during the request
-      print('Error verifying OTP: $e');
-      // Show a generic error message
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('An error occurred while verifying OTP'),
       ));
@@ -63,11 +57,10 @@ class _VerifyOTPState extends State<VerifyOTP> {
 
   Future<void> resendOTP(String email) async {
     try {
-      final response = await http
-          .post(Uri.parse('${SharedValues.baseForgot}/resendOTP/$email'));
-      if (response.statusCode == 200) {
-        // OTP verified, navigate to change password screen
-        // Add navigation logic to change password screen here
+      final response = await HttpService.postWithoutAuth(
+          '/auth/password-reset/request', {'email': email});
+      if (!mounted) return;
+      if (response['message'] == 'Success') {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('OTP Sent Again!'),
         ));
@@ -77,7 +70,7 @@ class _VerifyOTPState extends State<VerifyOTP> {
         ));
       }
     } catch (e) {
-      print('Error sending OTP: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('An error occurred while sending OTP'),
       ));
@@ -87,7 +80,7 @@ class _VerifyOTPState extends State<VerifyOTP> {
   @override
   Widget build(BuildContext context) {
     final String recievedEmail = widget.recievedEmail;
-    const length = 4;
+    const length = 6;
     const borderColor = Color.fromRGBO(114, 178, 238, 1);
     const errorColor = Color.fromRGBO(255, 234, 238, 1);
     const fillColor = Color.fromRGBO(222, 231, 240, .57);

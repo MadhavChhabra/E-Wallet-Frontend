@@ -31,15 +31,12 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
       int? userId;
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
-        print('User is not null');
         userId = user.id;
       }
       // Fetch IBANs list using user's id
       final response =
-          await HttpService.getWithAuth('/BankAccounts/users/$userId');
-      print(response);
+          await HttpService.getWithAuth('/bank-accounts/users/$userId');
       if (response['message'] == 'Success') {
-        print(response);
 
         List<String> ibans = [];
         List<dynamic> dataList = response['data'];
@@ -50,11 +47,9 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
 
         setState(() {
           fromBankAccountIbans = ibans;
-          print(fromBankAccountIbans.toString());
         });
       }
     } catch (error) {
-      print('Error fetching user bankaccounts: $error');
     }
   }
 
@@ -78,7 +73,7 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
           Image.asset('assets/file.png', height: 331),
-          SizedBox(
+          const SizedBox(
             height: 20,
           ),
 
@@ -97,7 +92,7 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
               });
             },
           ),
-          SizedBox(
+          const SizedBox(
             height: 20,
           ),
           CustomDropDownFieldButton<String>(

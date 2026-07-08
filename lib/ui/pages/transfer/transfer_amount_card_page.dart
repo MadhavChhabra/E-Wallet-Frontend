@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
+import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/loading_card.dart';
-import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_card.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
-import 'package:intl/intl.dart';
 
 import '../../../models/user_model.dart';
 
@@ -70,41 +69,47 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
     int? userId;
     final UserModel? user = await SharedUser().getCurrentUser();
     if (user != null) {
-      print('User is not null');
       userId = user.id;
     }
-    var now = DateTime.now().toUtc();
-    String formattedTime = DateFormat("dd.MM.yyyy HH:mm:ss").format(now);
+    // The backend models money movement as wallet-to-wallet transfers by IBAN.
+    // A "card payment" here is settled from the user's primary wallet to the
+    // recipient IBAN; the entered card is a UI affordance only.
+    final fromIban = await PaymentService.primaryWalletIban();
+    if (fromIban == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add a wallet account first')),
+      );
+      return;
+    }
 
     final transferData = {
-      'cardNumber': CardNumber,
-      'expiryDate': Expiry,
-      'cvv': CVV,
-      'toBankAccountiban': toIban,
+      'fromBankAccountIban': fromIban,
+      'toBankAccountIban': toIban,
       'amount': amount,
-      'cardHolderName': CardHolderName,
       'description': description,
-      'userID': userId,
-      'createdAt': formattedTime
+      'typeId': 1,
     };
 
     try {
-      final response = await HttpService.postWithAuth(
-          '/debitCards/transaction', transferData);
-      print('amount transfer response is');
-      print(response);
+      final response =
+          await HttpService.postWithAuth('/bank-accounts/transfer', transferData);
 
+      if (!mounted) return;
       if (response['message'] == 'Success') {
-        // If successful, navigate to success page
         Navigator.of(context).push(
-            MaterialPageRoute(builder: (context)=> LoadingCard()));
+            MaterialPageRoute(builder: (context) => const LoadingCard()));
       } else {
-        // Handle other status codes here
-        print('Failed to send transfer data. Status code: $response');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(response['message']?.toString() ?? 'Transfer failed')),
+        );
       }
     } catch (error) {
-      // Handle any errors that occur during the process
-      print('Error sending transfer data: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error sending transfer')),
+      );
     }
   }
 
@@ -134,7 +139,7 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
     return Scaffold(
       backgroundColor: darkBackgroundColor,
       body:Container(
-        padding: EdgeInsets.only(top: 80,left: 76,right: 55),
+        padding: const EdgeInsets.only(top: 80,left: 76,right: 55),
         alignment: Alignment.center,
         child: ListView(
           
