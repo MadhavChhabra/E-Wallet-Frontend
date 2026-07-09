@@ -71,28 +71,21 @@ class _PinPageState extends State<PinPage> {
                 const SizedBox(
                   height: 56,
                 ),
-                SizedBox(
-                  width: 200,
-                  child: TextFormField(
-                    controller: pinController,
-                    obscureText: true,
-                    obscuringCharacter: '*',
-                    cursorColor: greyColor,
-                    enabled: false,
-                    textAlign: TextAlign.center,
-                    style: whiteTextStyle.copyWith(
-                      fontSize: 36,
-                      fontWeight: medium,
-                      letterSpacing: 12,
-                    ),
-                    decoration: InputDecoration(
-                      disabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: greyColor,
-                        ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(6, (i) {
+                    final active = i < pinController.text.length;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: active ? whiteColor : Colors.transparent,
+                        border: Border.all(color: greyColor, width: 1.5),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 ),
                 const SizedBox(
                   height: 48,

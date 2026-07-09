@@ -3,6 +3,7 @@ import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/services/razorpay/razorpay_checkout.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/shared_values.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -78,6 +79,7 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
         paymentId: result.paymentId,
         signature: result.signature,
       );
+      AppEvents.instance.notifyWalletChanged();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/topup-success', (r) => false);
     } catch (e) {
@@ -128,24 +130,17 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
               ),
             ),
             const SizedBox(height: 48),
-            Align(
-              child: SizedBox(
-                width: 240,
-                child: TextFormField(
-                  controller: amountController,
-                  cursorColor: greyColor,
-                  enabled: false,
-                  textAlign: TextAlign.center,
-                  style: whiteTextStyle.copyWith(fontSize: 32, fontWeight: medium),
-                  decoration: InputDecoration(
-                    prefixIcon: Text(
-                      '₹ ',
-                      style: whiteTextStyle.copyWith(fontSize: 32, fontWeight: medium),
-                    ),
-                    disabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: greyColor),
-                    ),
-                  ),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(color: greyColor.withOpacity(0.4))),
+                ),
+                child: Text(
+                  '₹ ${amountController.text}',
+                  style:
+                      whiteTextStyle.copyWith(fontSize: 40, fontWeight: semiBold),
                 ),
               ),
             ),

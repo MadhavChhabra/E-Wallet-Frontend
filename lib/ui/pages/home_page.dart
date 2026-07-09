@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/models/user_model.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
+import 'package:flutter_ewallet/utils/iban.dart';
 import 'package:flutter_ewallet/ui/widgets/notifications_sheet.dart';
 import 'package:flutter_ewallet/ui/widgets/animated_entrance.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_home_services.dart';
@@ -32,7 +34,16 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
   void initState() {
     super.initState();
     _loadTransactions();
+    AppEvents.instance.walletChanged.addListener(_onWalletChanged);
   }
+
+  @override
+  void dispose() {
+    AppEvents.instance.walletChanged.removeListener(_onWalletChanged);
+    super.dispose();
+  }
+
+  void _onWalletChanged() => _loadTransactions(forceRefresh: true);
 
   Future<void> reload({bool forceRefresh = false}) =>
       _loadTransactions(forceRefresh: forceRefresh);
@@ -119,12 +130,23 @@ class _AccountsWidgetState extends State<AccountsWidget> {
   bool loading = true;
   final PageController _pageController = PageController();
   String? fullName;
+  bool _provisioned = false;
 
   @override
   void initState() {
     super.initState();
     fetchAccountData();
+    AppEvents.instance.walletChanged.addListener(_onWalletChanged);
   }
+
+  @override
+  void dispose() {
+    AppEvents.instance.walletChanged.removeListener(_onWalletChanged);
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onWalletChanged() => fetchAccountData();
 
   Future<void> fetchAccountData() async {
     int? userId;
@@ -137,12 +159,31 @@ class _AccountsWidgetState extends State<AccountsWidget> {
       }
       final response =
           await HttpService.getWithAuth('/bank-accounts/users/$userId');
+      final List<dynamic> accounts =
+          (response['data'] as List<dynamic>?) ?? <dynamic>[];
 
-      for (var i = 0; i < response['data'].length; i++) {
-        final account = response['data'][i];
+      // A brand-new user has no wallet yet — auto-provision a funded one so the
+      // dashboard is immediately usable (transfers, top-up, cards). Done once.
+      if (accounts.isEmpty && !_provisioned && userId != null) {
+        _provisioned = true;
+        try {
+          await HttpService.postWithAuth('/bank-accounts', {
+            'name': 'My Wallet',
+            'iban': generateIban(),
+            'balance': '5000',
+            'userId': userId,
+          });
+          return fetchAccountData();
+        } catch (_) {
+          // Fall through and show the empty state if provisioning fails.
+        }
+      }
+
+      for (var i = 0; i < accounts.length; i++) {
+        final account = accounts[i];
         final accountId = account['id'].toString();
         if (i == 0) {
-          final email = account['user']['email']?.toString();
+          final email = account['user']?['email']?.toString();
           if (email != null) {
             await SharedUser().writeToStorage('email', email);
           }
@@ -150,15 +191,18 @@ class _AccountsWidgetState extends State<AccountsWidget> {
         await SharedUser().writeToStorage('bank_account_$accountId', accountId);
       }
 
+      if (!mounted) return;
       setState(() {
-        data = response['data'];
+        data = accounts;
         loading = false;
         fullName = naam;
       });
     } catch (e) {
-      setState(() {
-        loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 
@@ -240,7 +284,6 @@ class _AccountsWidgetState extends State<AccountsWidget> {
     );
   }
 }
-// start here
 
 class SendAgainWidget extends StatefulWidget {
   const SendAgainWidget({super.key});
@@ -257,7 +300,16 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
   void initState() {
     super.initState();
     _loadUsers();
+    AppEvents.instance.walletChanged.addListener(_onWalletChanged);
   }
+
+  @override
+  void dispose() {
+    AppEvents.instance.walletChanged.removeListener(_onWalletChanged);
+    super.dispose();
+  }
+
+  void _onWalletChanged() => _loadUsers(forceRefresh: true);
 
   Future<void> reload({bool forceRefresh = false}) =>
       _loadUsers(forceRefresh: forceRefresh);

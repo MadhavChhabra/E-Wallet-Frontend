@@ -78,6 +78,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+dependency_overrides:
+  # The transitively-pinned win32 5.0.3 uses UnmodifiableUint8ListView, which
+  # was removed in Dart 3.4+. It only gets compiled when building from a Windows
+  # host (it's a Windows-desktop dep), breaking the release APK AOT step there.
+  # Force a Dart 3.5-compatible win32. Irrelevant to the Android/web runtime.
+  # 5.0.3 uses removed UnmodifiableUint8ListView; >=5.6 uses newer FFI @Array
+  # semantics this SDK rejects. 5.5.5 is the sweet spot for Flutter 3.24/Dart 3.5.
+  win32: 5.5.5
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 # The following section is specific to Flutter packages.
