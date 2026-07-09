@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/services/razorpay/razorpay_checkout.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
-import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
+import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
 import 'package:flutter_ewallet/utils/shared_values.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -119,27 +119,27 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
       backgroundColor: darkBackgroundColor,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 58),
+          padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
           children: [
-            const SizedBox(height: 30),
             Center(
               child: Text(
                 'Total Amount',
                 style: whiteTextStyle.copyWith(fontSize: 20, fontWeight: semiBold),
               ),
             ),
-            const SizedBox(height: 50),
+            const SizedBox(height: 48),
             Align(
               child: SizedBox(
-                width: 220,
+                width: 240,
                 child: TextFormField(
                   controller: amountController,
                   cursorColor: greyColor,
                   enabled: false,
+                  textAlign: TextAlign.center,
                   style: whiteTextStyle.copyWith(fontSize: 32, fontWeight: medium),
                   decoration: InputDecoration(
                     prefixIcon: Text(
-                      'Rs ',
+                      '₹ ',
                       style: whiteTextStyle.copyWith(fontSize: 32, fontWeight: medium),
                     ),
                     disabledBorder: UnderlineInputBorder(
@@ -149,37 +149,19 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 50),
-            Wrap(
-              spacing: 40,
-              runSpacing: 40,
-              children: [
-                for (final n in ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
-                  CustomInputPinButton(text: n, onTap: () => _addAmount(n)),
-                const SizedBox(height: 60, width: 60),
-                CustomInputPinButton(text: '0', onTap: () => _addAmount('0')),
-                GestureDetector(
-                  onTap: _deleteAmount,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: numberBackgroundColor,
-                    ),
-                    child: Center(child: Icon(Icons.arrow_back, color: whiteColor)),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 48),
+            NumericKeypad(
+              onDigit: _addAmount,
+              onDelete: _deleteAmount,
             ),
-            const SizedBox(height: 50),
+            const SizedBox(height: 40),
             _processing
                 ? const Center(child: CircularProgressIndicator())
                 : CustomFilledButton(
                     title: 'Pay with Razorpay',
                     onPressed: _startCheckout,
                   ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
           ],
         ),
       ),

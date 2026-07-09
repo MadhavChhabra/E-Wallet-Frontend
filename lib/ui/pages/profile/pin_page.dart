@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
+import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
 import 'package:flutter_ewallet/utils/shared.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
@@ -57,7 +57,7 @@ class _PinPageState extends State<PinPage> {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 58),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -69,7 +69,7 @@ class _PinPageState extends State<PinPage> {
                   ),
                 ),
                 const SizedBox(
-                  height: 72,
+                  height: 56,
                 ),
                 SizedBox(
                   width: 200,
@@ -79,10 +79,11 @@ class _PinPageState extends State<PinPage> {
                     obscuringCharacter: '*',
                     cursorColor: greyColor,
                     enabled: false,
+                    textAlign: TextAlign.center,
                     style: whiteTextStyle.copyWith(
                       fontSize: 36,
                       fontWeight: medium,
-                      letterSpacing: 16,
+                      letterSpacing: 12,
                     ),
                     decoration: InputDecoration(
                       disabledBorder: UnderlineInputBorder(
@@ -94,97 +95,12 @@ class _PinPageState extends State<PinPage> {
                   ),
                 ),
                 const SizedBox(
-                  height: 66,
+                  height: 48,
                 ),
-                Wrap(
-                  spacing: 40,
-                  runSpacing: 40,
-                  children: [
-                    CustomInputPinButton(
-                      text: '1',
-                      onTap: () {
-                        addPin('1');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '2',
-                      onTap: () {
-                        addPin('2');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '3',
-                      onTap: () {
-                        addPin('3');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '4',
-                      onTap: () {
-                        addPin('4');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '5',
-                      onTap: () {
-                        addPin('5');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '6',
-                      onTap: () {
-                        addPin('6');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '7',
-                      onTap: () {
-                        addPin('7');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '8',
-                      onTap: () {
-                        addPin('8');
-                      },
-                    ),
-                    CustomInputPinButton(
-                      text: '9',
-                      onTap: () {
-                        addPin('9');
-                      },
-                    ),
-                    const SizedBox(
-                      height: 60,
-                      width: 60,
-                    ),
-                    CustomInputPinButton(
-                      text: '0',
-                      onTap: () {
-                        addPin('0');
-                      },
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        deletePin();
-                      },
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: numberBackgroundColor,
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.arrow_back,
-                            color: whiteColor,
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                )
+                NumericKeypad(
+                  onDigit: addPin,
+                  onDelete: deletePin,
+                ),
               ],
             ),
           ),

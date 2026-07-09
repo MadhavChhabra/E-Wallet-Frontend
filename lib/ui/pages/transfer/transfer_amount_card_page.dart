@@ -3,7 +3,7 @@ import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/loading_card.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
-import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
+import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
 class TransferCardAmountPage extends StatefulWidget {
@@ -128,11 +128,9 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: darkBackgroundColor,
-      body:Container(
-        padding: const EdgeInsets.only(top: 80,left: 76,right: 55),
-        alignment: Alignment.center,
+      body: SafeArea(
         child: ListView(
-          
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
           children: [
             Center(
               child: Text(
@@ -144,15 +142,16 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
               ),
             ),
             const SizedBox(
-              height: 65,
+              height: 48,
             ),
             Align(
               child: SizedBox(
-                width: 200,
+                width: 220,
                 child: TextFormField(
                   controller: amountController,
                   cursorColor: greyColor,
                   enabled: false,
+                  textAlign: TextAlign.center,
                   style: whiteTextStyle.copyWith(
                     fontSize: 32,
                     fontWeight: medium,
@@ -175,99 +174,14 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
               ),
             ),
             const SizedBox(
-              height: 66,
+              height: 48,
             ),
-            Wrap(
-              spacing: 40,
-              runSpacing: 40,
-              children: [
-                CustomInputPinButton(
-                  text: '1',
-                  onTap: () {
-                    addAmount('1');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '2',
-                  onTap: () {
-                    addAmount('2');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '3',
-                  onTap: () {
-                    addAmount('3');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '4',
-                  onTap: () {
-                    addAmount('4');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '5',
-                  onTap: () {
-                    addAmount('5');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '6',
-                  onTap: () {
-                    addAmount('6');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '7',
-                  onTap: () {
-                    addAmount('7');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '8',
-                  onTap: () {
-                    addAmount('8');
-                  },
-                ),
-                CustomInputPinButton(
-                  text: '9',
-                  onTap: () {
-                    addAmount('9');
-                  },
-                ),
-                const SizedBox(
-                  height: 60,
-                  width: 60,
-                ),
-                CustomInputPinButton(
-                  text: '0',
-                  onTap: () {
-                    addAmount('0');
-                  },
-                ),
-                GestureDetector(
-                  onTap: () {
-                    deleteAmount();
-                  },
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: numberBackgroundColor,
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.arrow_back,
-                        color: whiteColor,
-                      ),
-                    ),
-                  ),
-                )
-              ],
+            NumericKeypad(
+              onDigit: addAmount,
+              onDelete: deleteAmount,
             ),
             const SizedBox(
-              height: 50,
+              height: 40,
             ),
             CustomFilledButton(
               title: 'Checkout Now',
