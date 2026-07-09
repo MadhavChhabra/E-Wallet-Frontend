@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
-import 'package:flutter_ewallet/ui/pages/transfer/loading_animation_screen.dart';
+import 'package:flutter_ewallet/ui/pages/transfer/payment_processing_screen.dart';
+import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
+import 'package:flutter_ewallet/utils/pin_gate.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
 class TransferAmountPage extends StatefulWidget {
@@ -12,11 +14,11 @@ class TransferAmountPage extends StatefulWidget {
   final String description;
 
   const TransferAmountPage({
-    Key? key,
+    super.key,
     required this.fromIban,
     required this.toIban,
     required this.description,
-  }) : super(key: key);
+  });
 
   @override
   State<TransferAmountPage> createState() => _TransferAmountPageState();
@@ -25,69 +27,84 @@ class TransferAmountPage extends StatefulWidget {
 class _TransferAmountPageState extends State<TransferAmountPage> {
   final TextEditingController amountController =
       TextEditingController(text: '0');
+  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-
-    amountController.addListener(
-      () {
-        final text = amountController.text;
-        final number = int.tryParse(text.replaceAll(RegExp(r'[.,]'), ''));
-
-        if (number != null) {
-          final formattedText = number.toString();
-          setState(() {
-            amountController.value = amountController.value.copyWith(
-              text: formattedText,
-              selection: TextSelection.collapsed(offset: formattedText.length),
-            );
-          });
-        }
-      },
-    );
+    amountController.addListener(_formatAmount);
   }
 
-  Future<void> sendTransferData(String fromIban, String toIban, String balance,
-      String description) async {
-    final amount = double.tryParse(balance);
+  @override
+  void dispose() {
+    amountController.removeListener(_formatAmount);
+    amountController.dispose();
+    super.dispose();
+  }
+
+  void _formatAmount() {
+    final text = amountController.text;
+    final number = int.tryParse(text.replaceAll(RegExp(r'[.,]'), ''));
+    if (number != null) {
+      final formattedText = number.toString();
+      if (formattedText != text) {
+        amountController.value = amountController.value.copyWith(
+          text: formattedText,
+          selection: TextSelection.collapsed(offset: formattedText.length),
+        );
+      }
+    }
+  }
+
+  Future<void> _checkout() async {
+    final amount = double.tryParse(amountController.text);
     if (amount == null || amount <= 0) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid amount')),
       );
       return;
     }
 
+    final pinOk = await requirePin(context);
+    if (!pinOk || !mounted) return;
+
+    setState(() => _submitting = true);
+
     final transferData = {
-      'fromBankAccountIban': fromIban,
-      'toBankAccountIban': toIban,
+      'fromBankAccountIban': widget.fromIban,
+      'toBankAccountIban': widget.toIban,
       'amount': amount,
       'typeId': 1,
-      'description': description,
+      'description': widget.description,
     };
 
     try {
-      final response = await HttpService.postWithAuth(
-          '/bank-accounts/transfer', transferData);
+      final response =
+          await HttpService.postWithAuth('/bank-accounts/transfer', transferData);
 
       if (!mounted) return;
+      setState(() => _submitting = false);
+
       if (response['message'] == 'Success') {
         AppEvents.instance.notifyWalletChanged();
         Navigator.of(context).push(
           MaterialPageRoute(
-              builder: (context) => const LoadingAnimationScreen()),
+            builder: (_) => PaymentProcessingScreen(
+              nextPage: const TransferSuccessPage(),
+              message: 'Sending money…',
+            ),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                response['message']?.toString() ?? 'Transfer failed'),
+            content: Text(response['message']?.toString() ?? 'Transfer failed'),
           ),
         );
       }
     } catch (error) {
       if (!mounted) return;
+      setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.toString())),
       );
@@ -98,20 +115,16 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
     if (amountController.text == '0') {
       amountController.text = '';
     }
-    setState(() {
-      amountController.text = amountController.text + number;
-    });
+    amountController.text = amountController.text + number;
   }
 
   void deleteAmount() {
     if (amountController.text.isNotEmpty) {
-      setState(() {
-        amountController.text = amountController.text
-            .substring(0, amountController.text.length - 1);
-        if (amountController.text == '') {
-          amountController.text = '0';
-        }
-      });
+      amountController.text = amountController.text
+          .substring(0, amountController.text.length - 1);
+      if (amountController.text.isEmpty) {
+        amountController.text = '0';
+      }
     }
   }
 
@@ -119,79 +132,56 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: darkBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: darkBackgroundColor,
+        foregroundColor: whiteColor,
+        title: const Text('Enter amount'),
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           children: [
             Center(
               child: Text(
-                'Total Amount',
+                'Total amount',
                 style: whiteTextStyle.copyWith(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: semiBold,
                 ),
               ),
             ),
-            const SizedBox(
-              height: 48,
-            ),
+            const SizedBox(height: 48),
             Center(
               child: Container(
                 padding: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
                   border: Border(
-                      bottom: BorderSide(color: greyColor.withOpacity(0.4))),
+                    bottom: BorderSide(color: greyColor.withOpacity(0.4)),
+                  ),
                 ),
                 child: Text(
                   '₹ ${amountController.text}',
-                  style:
-                      whiteTextStyle.copyWith(fontSize: 40, fontWeight: semiBold),
+                  style: whiteTextStyle.copyWith(
+                    fontSize: 40,
+                    fontWeight: semiBold,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(
-              height: 48,
-            ),
+            const SizedBox(height: 48),
             NumericKeypad(
               onDigit: addAmount,
               onDelete: deleteAmount,
             ),
-            const SizedBox(
-              height: 40,
-            ),
+            const SizedBox(height: 40),
             CustomFilledButton(
-              title: 'Checkout Now',
-              onPressed: () async {
-                await sendTransferData(
-                  widget.fromIban,
-                  widget.toIban,
-                  amountController.text,
-                  widget.description,
-                );
-              },
+              title: _submitting ? 'Please wait…' : 'Confirm & pay',
+              onPressed: _submitting ? null : _checkout,
             ),
-            const SizedBox(
-              height: 25,
-            ),
-            CustomTextButton(
-              title: 'Term & Conditions',
-              onPressed: () {},
-            ),
-            const SizedBox(
-              height: 40,
-            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
-
-  // final Uri _url = Uri.parse('https://demo.midtrans.com/');
-
-  // Future<void> _launchUrl() async {
-  //   if (await Navigator.pushNamed(context, '/pin') == true) {
-  //     Navigator.pushNamedAndRemoveUntil(
-  //         context, '/transfer-success', (route) => false);
-  //   }
-  // }
 }

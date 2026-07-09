@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/models/transaction_item.dart';
 import 'package:flutter_ewallet/services/transaction_service.dart';
 import 'package:flutter_ewallet/ui/widgets/app_section_card.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:intl/intl.dart';
 
@@ -21,8 +22,17 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   @override
   void initState() {
     super.initState();
+    AppEvents.instance.walletChanged.addListener(_onWalletChanged);
     _loadTransactions();
   }
+
+  @override
+  void dispose() {
+    AppEvents.instance.walletChanged.removeListener(_onWalletChanged);
+    super.dispose();
+  }
+
+  void _onWalletChanged() => _loadTransactions(forceRefresh: true);
 
   Future<void> _loadTransactions({bool forceRefresh = false}) async {
     try {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/ui/pages/rewards_page.dart';
 import 'package:flutter_ewallet/ui/pages/home_page.dart';
 import 'package:flutter_ewallet/ui/pages/transaction_history.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 
 import '../../utils/theme.dart';
 import 'card/pick_a_card.dart';
@@ -28,8 +29,9 @@ class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).pushNamed('/addCard');
+        onPressed: () async {
+          await Navigator.of(context).pushNamed('/addCard');
+          AppEvents.instance.notifyCardsChanged();
         },
         backgroundColor: purpleColor,
         child: Image.asset(

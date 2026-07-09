@@ -31,7 +31,8 @@ class TransactionService {
     }
 
     final UserModel? user = await SharedUser().getCurrentUser();
-    if (user?.id == null) {
+    final currentUserId = user?.id?.toString();
+    if (currentUserId == null) {
       _cache = const [];
       _cachedAt = DateTime.now();
       return _cache!;
@@ -45,12 +46,11 @@ class TransactionService {
       return _cache!;
     }
 
-    final bankAccountIds = await SharedUser().retrieveBankAccountIds();
     final dataList = response['data']['content'] as List<dynamic>? ?? [];
 
     final items = <TransactionItem>[];
     for (final raw in dataList) {
-      final item = _mapTransaction(raw, bankAccountIds);
+      final item = _mapTransaction(raw, currentUserId);
       if (item != null) items.add(item);
     }
 
@@ -104,7 +104,7 @@ class TransactionService {
 
   TransactionItem? _mapTransaction(
     dynamic raw,
-    List<String> bankAccountIds,
+    String? currentUserId,
   ) {
     final amount = raw['amount'] != null
         ? double.tryParse(raw['amount'].toString())
@@ -124,14 +124,14 @@ class TransactionService {
     // 4=Top Up, 5=Payment.
     switch (typeId) {
       case 1:
-        final fromId = raw['fromBankAccount']?['id']?.toString();
+        final fromUserId = raw['fromBankAccount']?['user']?['id']?.toString();
         final outgoing =
-            fromId != null && bankAccountIds.contains(fromId);
+            currentUserId != null && fromUserId == currentUserId;
         icon = outgoing
             ? 'assets/ic_transaction_cat3.png'
             : 'assets/ic_transaction_cat1.png';
         sign = outgoing ? '-' : '+';
-        title = 'Transfer';
+        title = outgoing ? 'Money sent' : 'Money received';
         isOutgoing = outgoing;
         if (outgoing) {
           counterpartyUsername =

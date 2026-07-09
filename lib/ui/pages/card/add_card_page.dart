@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_credit_card/flutter_credit_card.dart';
+import 'package:flutter_ewallet/models/wallet_account.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
+import 'package:flutter_ewallet/services/wallet_account_service.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
-import 'package:flutter_ewallet/utils/shared_user.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
-import '../../../models/user_model.dart';
 
 class AddCardPage extends StatefulWidget {
   const AddCardPage({Key? key}) : super(key: key);
@@ -17,7 +17,7 @@ class AddCardPage extends StatefulWidget {
 }
 
 class AddCardPageState extends State<AddCardPage> {
-  List<String> fromBankAccountIbans = [];
+  List<WalletAccount> _accounts = [];
   String? selectedFromIban;
   int bankAccountId = 0;
 
@@ -42,27 +42,16 @@ class AddCardPageState extends State<AddCardPage> {
 
   Future<void> fetchUserBankAccounts() async {
     try {
-      int? userId;
-      final UserModel? user = await SharedUser().getCurrentUser();
-      if (user != null) {
-        userId = user.id;
-      }
-      // Fetch IBANs list using user's id
-      final response =
-          await HttpService.getWithAuth('/bank-accounts/users/$userId');
-      if (response['message'] == 'Success') {
-
-        List<String> ibans = [];
-        List<dynamic> dataList = response['data'];
-
-        for (var item in dataList) {
-          ibans.add(item['iban']);
+      final accounts =
+          await WalletAccountService.instance.fetchAccounts(forceRefresh: true);
+      if (!mounted) return;
+      setState(() {
+        _accounts = accounts;
+        if (accounts.isNotEmpty && selectedFromIban == null) {
+          selectedFromIban = accounts.first.iban;
+          bankAccountId = accounts.first.id;
         }
-
-        setState(() {
-          fromBankAccountIbans = ibans;
-        });
-      }
+      });
     } catch (_) {
       // Leave the account list empty; the dropdown simply has no options.
     }
@@ -70,16 +59,14 @@ class AddCardPageState extends State<AddCardPage> {
 
   Future<void> fetchBankAccountId(String iban) async {
     try {
-      // Fetch IBANs list using user's id
-      final response =
-          await HttpService.getWithAuth('/bank-accounts/iban/$iban');
+      final response = await HttpService.getWithAuth('/bank-accounts/iban/$iban');
       if (response['message'] == 'Success') {
-
-        int id = response['data']['id'];
-
-        setState(() {
-          bankAccountId = id;
-        });
+        final id = response['data']['id'];
+        if (mounted) {
+          setState(() {
+            bankAccountId = id is int ? id : int.tryParse('$id') ?? 0;
+          });
+        }
       }
     } catch (_) {
       // Ignore; the id stays 0 and the backend rejects an invalid reference.
@@ -173,17 +160,18 @@ backgroundImage: "assets/bg8.jpg",
                             ),
                             const SizedBox(height: 20),
                             CustomDropDownFieldButton<String>(
-                              title: "Select Your IBAN",
+                              title: 'Link to wallet',
                               value: selectedFromIban,
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  selectedFromIban = newValue;
-                                });
+                              onChanged: (String? newValue) async {
+                                setState(() => selectedFromIban = newValue);
+                                if (newValue != null) {
+                                  await fetchBankAccountId(newValue);
+                                }
                               },
-                              items: fromBankAccountIbans.map((String iban) {
+                              items: _accounts.map((account) {
                                 return DropdownMenuItem<String>(
-                                  value: iban,
-                                  child: Text(iban),
+                                  value: account.iban,
+                                  child: Text(account.label),
                                 );
                               }).toList(),
                             ),
@@ -210,9 +198,10 @@ backgroundImage: "assets/bg8.jpg",
   }
 
   void _onValidate() async {
-    fetchBankAccountId(selectedFromIban.toString());
-
     if (formKey.currentState?.validate() ?? false) {
+      if (selectedFromIban != null) {
+        await fetchBankAccountId(selectedFromIban!);
+      }
 
       final cardData = {
         'cardHolderName': cardHolderName.trim(),
@@ -225,6 +214,7 @@ backgroundImage: "assets/bg8.jpg",
       try {
         var response = await HttpService.postWithAuth('/cards', cardData);
         if (response['message'] == 'Success') {
+          AppEvents.instance.notifyCardsChanged();
           Fluttertoast.showToast(msg: 'Card created successfully!');
           if (!mounted) return;
           Navigator.of(context).pop();

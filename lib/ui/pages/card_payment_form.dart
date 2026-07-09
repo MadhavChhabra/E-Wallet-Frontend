@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter_credit_card/flutter_credit_card.dart';
+import 'package:flutter_ewallet/models/wallet_account.dart';
+import 'package:flutter_ewallet/services/wallet_account_service.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/card_display.dart';
+import 'package:flutter_ewallet/utils/iban_utils.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_card_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
+import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
+import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
+import 'package:flutter_ewallet/ui/widgets/saved_card_widget.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../services/http_service.dart';
-import '../widgets/custom_text_field.dart';
 
 const double kCardHeight = 225;
 const double kCardWidth = 356;
-const double kRaisedHeight = 10.0; // Adjust this value as needed
 
 class CardPaymentPage extends StatefulWidget {
-  const CardPaymentPage({Key? key}) : super(key: key);
+  const CardPaymentPage({super.key});
 
   @override
   State<CardPaymentPage> createState() => _CardPaymentPageState();
@@ -21,10 +25,16 @@ class CardPaymentPage extends StatefulWidget {
 
 class _CardPaymentPageState extends State<CardPaymentPage>
     with SingleTickerProviderStateMixin {
+  static const _customPayee = '__custom__';
+
   int? selectedCardIndex;
   List<Map<String, dynamic>> creditCards = [];
-  final TextEditingController toIbanController =
-      TextEditingController(text: '');
+  List<PayeeOption> _recentPayees = [];
+  String? _selectedPayeeKey;
+  bool _useCustomIban = false;
+  bool _loading = true;
+
+  final TextEditingController toIbanController = TextEditingController();
 
   AnimationController? _animationController;
   Animation<double>? _animation;
@@ -32,7 +42,8 @@ class _CardPaymentPageState extends State<CardPaymentPage>
   @override
   void initState() {
     super.initState();
-    _fetchDataFromUrl();
+    AppEvents.instance.cardsChanged.addListener(_reloadCards);
+    _load();
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -49,241 +60,247 @@ class _CardPaymentPageState extends State<CardPaymentPage>
 
   @override
   void dispose() {
+    AppEvents.instance.cardsChanged.removeListener(_reloadCards);
     _animationController?.dispose();
+    toIbanController.dispose();
     super.dispose();
   }
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _fetchDataFromUrl();
-  // }
+  Future<void> _load() async {
+    await Future.wait([_fetchCards(), _loadPayees()]);
+    if (mounted) setState(() => _loading = false);
+  }
 
-  Future<void> _fetchDataFromUrl() async {
+  void _reloadCards() => _fetchCards();
+
+  Future<void> _fetchCards() async {
     try {
-      final response =
-          await HttpService.getWithAuth('/cards');
+      final response = await HttpService.getWithAuth('/cards');
+      if (!mounted) return;
       if (response['message'] == 'Success') {
-        final List<Map<String, dynamic>> cardsData =
-            List<Map<String, dynamic>>.from(response['data']);
+        final cardsData = List<Map<String, dynamic>>.from(response['data']);
         setState(() {
           creditCards = cardsData;
+          if (selectedCardIndex != null &&
+              selectedCardIndex! >= creditCards.length) {
+            selectedCardIndex = null;
+          }
         });
-      } else {
-        throw Exception('Failed to load data');
       }
     } catch (_) {
-      // Leave the card list empty; the UI shows the empty state.
+      if (mounted) setState(() => creditCards = []);
     }
+  }
+
+  Future<void> _loadPayees() async {
+    try {
+      final payees = await WalletAccountService.instance.recentPayees();
+      if (mounted) setState(() => _recentPayees = payees);
+    } catch (_) {
+      // Optional list.
+    }
+  }
+
+  List<DropdownMenuItem<String>> _payeeItems() {
+    final items = _recentPayees
+        .map((p) => DropdownMenuItem(
+              value: p.iban,
+              child: Text(p.label),
+            ))
+        .toList();
+    items.add(const DropdownMenuItem(
+      value: _customPayee,
+      child: Text('Enter IBAN manually'),
+    ));
+    return items;
+  }
+
+  String? _resolveToIban() {
+    if (_useCustomIban || _selectedPayeeKey == _customPayee) {
+      return extractIban(toIbanController.text) ?? toIbanController.text.trim();
+    }
+    return _selectedPayeeKey;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: const Text('Select Card'),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-              Color.fromARGB(255, 225, 211, 255),
-              Color.fromARGB(255, 196, 238, 255),
-              Color.fromARGB(255, 241, 194, 255)
-            ])),
-        child: SingleChildScrollView(
-          child: Column(
-            verticalDirection: VerticalDirection.down,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SizedBox(
-                height: MediaQuery.of(context).size.height - 300,
-                width: MediaQuery.of(context).size.width,
-                // color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CarouselSlider.builder(
-                        itemCount: creditCards.length,
-                        itemBuilder: (context, index, realIndex) {
-                          final cardData = creditCards[index];
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                selectedCardIndex = index;
-                              });
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: selectedCardIndex == index
-                                      ? Colors.blue
-                                      : Colors.transparent,
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                                boxShadow: selectedCardIndex == index
-                                    ? [
-                                        BoxShadow(
-                                          color: Colors.blue.withOpacity(0.5),
-                                          spreadRadius: 1,
-                                          blurRadius: 3,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ]
-                                    : [],
-                              ),
-                              child: CreditCardWidget(
-                                cardNumber: CardDisplay.number(cardData),
-                                expiryDate: CardDisplay.expiry(cardData),
-                                cardHolderName: CardDisplay.holder(cardData),
-                                cvvCode: CardDisplay.cvv(cardData),
-                                showBackView: false,
-                                isSwipeGestureEnabled: false,
-                                // enableFloatingCard: true,
-                                // isHolderNameVisible: true,    
-                                height: kCardHeight,
-                                width: kCardWidth,
-                                onCreditCardWidgetChange: (_) {},
-                              ),
-                            ),
-                          );
-                        },
-                        options: CarouselOptions(
-                          height: kCardHeight,
-                          aspectRatio: kCardWidth / kCardHeight,
-                          viewportFraction: 0.8,
-                          initialPage: 0,
-                          enableInfiniteScroll: false,
-                          reverse: false,
-                          enlargeCenterPage: true,enlargeStrategy: CenterPageEnlargeStrategy.scale,
-                          onPageChanged: (index, reason) {
-                            setState(() {
-                              selectedCardIndex = index;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    //  Container(
-                    //   margin: EdgeInsets.symmetric(horizontal: 20),
-                    //    child: CustomTextField(
-                    //     title: 'Enter Receiver\'s IBAN',
-                    //     hintText: 'IBAN',
-                    //     controller: toIbanController,
-                    //                    ),
-                    //  ),
+      appBar: AppBar(title: const Text('Pay with card')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          : Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.fromARGB(255, 225, 211, 255),
+                    Color.fromARGB(255, 196, 238, 255),
+                    Color.fromARGB(255, 241, 194, 255),
                   ],
                 ),
               ),
-              AnimatedBuilder(
-                animation: _animationController!,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0,
-                        MediaQuery.of(context).size.height * _animation!.value),
-                    child: child,
-                  );
-                },
-                child: Container(
-                  // borderOnForeground: true,
-                  margin: const EdgeInsets.all(0),
-                  child: Container(
-                    height: 195,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(40),
-                        topRight: Radius.circular(40),
+              child: creditCards.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Add a card first from the Cards tab (+).',
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(
-                              top: 20, left: 20, right: 20, bottom: 15),
-                          child: CustomTextField(
-                            title: 'Enter Receiver\'s IBAN',
-                            hintText: 'IBAN',
-                            controller: toIbanController,
-                          ),
-                        ),
-                        if (selectedCardIndex != null)
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: CustomFilledButton(
-                              onPressed: () {
-                                if (selectedCardIndex == null) {
-                                  Fluttertoast.showToast(
-                                      msg: 'Please select a card first.');
-                                  return;
-                                }
-                                final toIban = toIbanController.text.trim();
-                                if (toIban.isEmpty) {
-                                  Fluttertoast.showToast(
-                                      msg: 'Please enter the receiver\'s IBAN.');
-                                  return;
-                                }
-                                final selectedCard =
-                                    creditCards[selectedCardIndex!];
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (context) => TransferCardAmountPage(
-                                    toIban: toIban,
-                                    cardNumber:
-                                        CardDisplay.number(selectedCard),
-                                    expiryDate:
-                                        CardDisplay.expiry(selectedCard),
-                                    cardHolderName:
-                                        CardDisplay.holder(selectedCard),
-                                    cvv: CardDisplay.cvv(selectedCard),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height - 300,
+                            width: MediaQuery.of(context).size.width,
+                            child: CarouselSlider.builder(
+                              itemCount: creditCards.length,
+                              itemBuilder: (context, index, realIndex) {
+                                final cardData = creditCards[index];
+                                return GestureDetector(
+                                  onTap: () =>
+                                      setState(() => selectedCardIndex = index),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: selectedCardIndex == index
+                                            ? Colors.blue
+                                            : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: SavedCardWidget(
+                                      cardHolderName:
+                                          CardDisplay.holder(cardData),
+                                      maskedNumber:
+                                          CardDisplay.number(cardData),
+                                      expiryDate:
+                                          CardDisplay.expiry(cardData),
+                                      brand: cardData['brand']?.toString(),
+                                      height: kCardHeight,
+                                      width: kCardWidth,
+                                    ),
                                   ),
-                                ));
+                                );
                               },
-                              title: 'Select this Card for Payment',
+                              options: CarouselOptions(
+                                height: kCardHeight,
+                                aspectRatio: kCardWidth / kCardHeight,
+                                viewportFraction: 0.8,
+                                enableInfiniteScroll: false,
+                                enlargeCenterPage: true,
+                                enlargeStrategy: CenterPageEnlargeStrategy.scale,
+                                onPageChanged: (index, reason) {
+                                  setState(() => selectedCardIndex = index);
+                                },
+                              ),
                             ),
                           ),
-
-                      ],
+                          AnimatedBuilder(
+                            animation: _animationController!,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(
+                                  0,
+                                  MediaQuery.of(context).size.height *
+                                      _animation!.value,
+                                ),
+                                child: child,
+                              );
+                            },
+                            child: Container(
+                              height: _useCustomIban ? 260 : 220,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(40),
+                                  topRight: Radius.circular(40),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 20),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: CustomDropDownFieldButton<String>(
+                                      title: 'Pay to',
+                                      value: _selectedPayeeKey,
+                                      items: _payeeItems(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedPayeeKey = value;
+                                          _useCustomIban = value == _customPayee;
+                                          if (!_useCustomIban && value != null) {
+                                            toIbanController.text = value;
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  if (_useCustomIban) ...[
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      child: CustomTextField(
+                                        title: 'Recipient IBAN',
+                                        hintText: 'Paste or type IBAN',
+                                        controller: toIbanController,
+                                      ),
+                                    ),
+                                  ],
+                                  if (selectedCardIndex != null)
+                                    Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: CustomFilledButton(
+                                        onPressed: () {
+                                          if (selectedCardIndex == null) {
+                                            Fluttertoast.showToast(
+                                                msg: 'Select a card first.');
+                                            return;
+                                          }
+                                          final toIban = _resolveToIban();
+                                          if (toIban == null ||
+                                              toIban.isEmpty) {
+                                            Fluttertoast.showToast(
+                                                msg:
+                                                    'Choose or enter a recipient.');
+                                            return;
+                                          }
+                                          final selectedCard =
+                                              creditCards[selectedCardIndex!];
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  TransferCardAmountPage(
+                                                toIban: toIban,
+                                                cardNumber: CardDisplay.number(
+                                                    selectedCard),
+                                                expiryDate: CardDisplay.expiry(
+                                                    selectedCard),
+                                                cardHolderName:
+                                                    CardDisplay.holder(
+                                                        selectedCard),
+                                                cvv: CardDisplay.cvv(
+                                                    selectedCard),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        title: 'Enter amount',
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
-
-  // void _showBottomSheet(BuildContext context) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return Container(
-  //         padding: EdgeInsets.all(16),
-  //         decoration: BoxDecoration(
-  //           color: Colors.white,
-  //           borderRadius: BorderRadius.only(
-  //             topLeft: Radius.circular(20),
-  //             topRight: Radius.circular(20),
-  //           ),
-  //         ),
-  //         child: Wrap(
-  //           children: <Widget>[
-  //             CustomTextField(
-  //               title: 'Enter Receiver\'s IBAN',
-  //               hintText: 'IBAN',
-  //               controller: toIbanController,
-  //             ),
-  //             // Add other widgets or buttons as needed
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 }

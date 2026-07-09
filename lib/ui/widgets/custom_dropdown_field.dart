@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/utils/theme.dart';
 
 class CustomDropDownFieldButton<T> extends StatefulWidget {
   final String title;
@@ -36,10 +37,7 @@ class _CustomDropDownFieldButtonState<T>
       children: [
         Text(
           widget.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: blackTextStyle.copyWith(fontSize: 14, fontWeight: semiBold),
         ),
         const SizedBox(
           height: 8,

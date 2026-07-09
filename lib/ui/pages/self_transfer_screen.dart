@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ewallet/services/http_service.dart';
+import 'package:flutter_ewallet/models/wallet_account.dart';
+import 'package:flutter_ewallet/services/wallet_account_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
-
-import '../../../utils/shared_user.dart';
-import '../../models/user_model.dart';
+import 'package:flutter_ewallet/utils/theme.dart';
 
 class SelfTransferPage extends StatefulWidget {
   const SelfTransferPage({super.key});
@@ -18,51 +17,49 @@ class SelfTransferPage extends StatefulWidget {
 class _SelfTransferPageState extends State<SelfTransferPage> {
   String? selectedFromIban;
   String? selectedToIban;
-  List<String> fromBankAccountIbans = [];
+  bool _loading = true;
+  List<WalletAccount> _accounts = [];
+
+  final TextEditingController descriptionController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    fetchUserBankAccounts();
+    _loadAccounts();
   }
 
-  Future<void> fetchUserBankAccounts() async {
+  @override
+  void dispose() {
+    descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAccounts() async {
     try {
-      int? userId;
-      final UserModel? user = await SharedUser().getCurrentUser();
-      if (user != null) {
-        userId = user.id;
-      }
-      // Fetch IBANs list using user's id
-      final response =
-          await HttpService.getWithAuth('/bank-accounts/users/$userId');
-      if (response['message'] == 'Success') {
-
-        List<String> ibans = [];
-        List<dynamic> dataList = response['data'];
-
-        for (var item in dataList) {
-          ibans.add(item['iban']);
+      final accounts =
+          await WalletAccountService.instance.fetchAccounts(forceRefresh: true);
+      if (!mounted) return;
+      setState(() {
+        _accounts = accounts;
+        _loading = false;
+        if (accounts.isNotEmpty && selectedFromIban == null) {
+          selectedFromIban = accounts.first.iban;
         }
-
-        setState(() {
-          fromBankAccountIbans = ibans;
-        });
-      }
+      });
     } catch (_) {
-      // Leave the account list empty; the UI shows the error state.
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  final TextEditingController fromIbanController =
-      TextEditingController(text: '');
-  final TextEditingController toIbanController =
-      TextEditingController(text: '');
-
-  final TextEditingController amountController =
-      TextEditingController(text: '');
-  final TextEditingController descriptionController =
-      TextEditingController(text: '');
+  List<DropdownMenuItem<String>> _toItems() {
+    return _accounts
+        .where((a) => a.iban != selectedFromIban)
+        .map((a) => DropdownMenuItem(
+              value: a.iban,
+              child: Text(a.label),
+            ))
+        .toList();
+  }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context)
@@ -72,91 +69,72 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Transfer'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        children: [
-          Image.asset('assets/file.png', height: 331),
-          const SizedBox(
-            height: 20,
-          ),
-
-          CustomDropDownFieldButton<String>(
-            title: 'Transfer from IBAN',
-            value: selectedFromIban,
-            items: fromBankAccountIbans.map((String iban) {
-              return DropdownMenuItem<String>(
-                value: iban,
-                child: Text(iban),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                selectedFromIban = newValue;
-              });
-            },
-          ),
-          const SizedBox(
-            height: 20,
-          ),
-          CustomDropDownFieldButton<String>(
-            title: 'Transfer to IBAN',
-            value: selectedToIban,
-            items: fromBankAccountIbans.map((String iban) {
-              return DropdownMenuItem<String>(
-                value: iban,
-                child: Text(iban),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                selectedToIban = newValue;
-              });
-            },
-          ),
-
-          const SizedBox(height: 20),
-          CustomTextField(
-            title: 'Description',
-            hintText: 'Enter description',
-            controller: descriptionController,
-          ),
-          // buildRecentUsers(),
-          // buildResult(),
-          const SizedBox(
-            height: 40,
-          ),
-          CustomFilledButton(
-            title: 'Continue',
-            onPressed: () async {
-              if (selectedFromIban == null || selectedToIban == null) {
-                _showError('Please choose both the source and destination account.');
-                return;
-              }
-              if (selectedFromIban == selectedToIban) {
-                _showError('Source and destination must be different accounts.');
-                return;
-              }
-              final routerPin = Navigator.pushNamed(context, '/pin');
-              if (await routerPin == true) {
-                if (!context.mounted) return;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TransferAmountPage(
-                      fromIban: selectedFromIban!,
-                      toIban: selectedToIban!,
-                      description: descriptionController.text,
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Move between wallets')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          : ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              children: [
+                const SizedBox(height: 12),
+                Text(
+                  'Transfer between your own accounts.',
+                  style: greyTextStyle.copyWith(fontSize: 14, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                CustomDropDownFieldButton<String>(
+                  title: 'From',
+                  value: selectedFromIban,
+                  items: _accounts
+                      .map((a) => DropdownMenuItem(
+                            value: a.iban,
+                            child: Text(a.label),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    selectedFromIban = value;
+                    if (selectedToIban == value) selectedToIban = null;
+                  }),
+                ),
+                const SizedBox(height: 16),
+                CustomDropDownFieldButton<String>(
+                  title: 'To',
+                  value: selectedToIban,
+                  items: _toItems(),
+                  onChanged: (value) => setState(() => selectedToIban = value),
+                ),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  title: 'Note (optional)',
+                  hintText: 'What is this for?',
+                  controller: descriptionController,
+                ),
+                const SizedBox(height: 32),
+                CustomFilledButton(
+                  title: 'Enter amount',
+                  onPressed: () {
+                    if (selectedFromIban == null || selectedToIban == null) {
+                      _showError('Choose both accounts.');
+                      return;
+                    }
+                    if (selectedFromIban == selectedToIban) {
+                      _showError('Source and destination must differ.');
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TransferAmountPage(
+                          fromIban: selectedFromIban!,
+                          toIban: selectedToIban!,
+                          description: descriptionController.text,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
     );
   }
 }

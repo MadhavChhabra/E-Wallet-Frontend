@@ -1,8 +1,9 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter_credit_card/flutter_credit_card.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/card_display.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
+import 'package:flutter_ewallet/ui/widgets/saved_card_widget.dart';
 
 import '../../../services/http_service.dart';
 
@@ -17,9 +18,9 @@ const Duration kAnimationDuration = Duration(milliseconds: 245);
 
 class SelectCard extends StatefulWidget {
   const SelectCard({
-    Key? key,
+    super.key,
     this.space = kSpaceBetweenCard,
-  }) : super(key: key);
+  });
 
   final double space;
 
@@ -29,42 +30,59 @@ class SelectCard extends StatefulWidget {
 
 class _SelectCardState extends State<SelectCard> {
   int? selectedCardIndex;
-
-  List<CreditCard> creditCards = [];
+  List<_SavedCardEntry> creditCards = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
+    AppEvents.instance.cardsChanged.addListener(_fetchDataFromUrl);
     _fetchDataFromUrl();
   }
 
-  void _fetchDataFromUrl() async {
+  @override
+  void dispose() {
+    AppEvents.instance.cardsChanged.removeListener(_fetchDataFromUrl);
+    super.dispose();
+  }
+
+  Future<void> _fetchDataFromUrl() async {
     try {
-      final response =
-          await HttpService.getWithAuth('/cards');
+      final response = await HttpService.getWithAuth('/cards');
+      if (!mounted) return;
       if (response['message'] == 'Success') {
         final List<Map<String, dynamic>> cardsData =
             List<Map<String, dynamic>>.from(response['data']);
 
         setState(() {
-          creditCards = cardsData.map((cardData) {
-            return CreditCard(
+          creditCards = cardsData.asMap().entries.map((entry) {
+            final index = entry.key;
+            final cardData = entry.value;
+            return _SavedCardEntry(
               cardData: cardData,
-              backgroundImageIndex: cardsData.indexOf(cardData),
-              onTap: () {
-                setState(() {
-                  selectedCardIndex = cardsData.indexOf(cardData);
-                });
-              },
-              isSelected: selectedCardIndex == cardsData.indexOf(cardData),
+              backgroundIndex: index,
+              onTap: () => setState(() => selectedCardIndex = index),
             );
           }).toList();
+          _loading = false;
+          if (selectedCardIndex != null &&
+              selectedCardIndex! >= creditCards.length) {
+            selectedCardIndex = null;
+          }
         });
       } else {
-        throw Exception('Failed to load data');
+        setState(() {
+          creditCards = [];
+          _loading = false;
+        });
       }
     } catch (_) {
-      // Leave the card list empty; the UI shows the empty state.
+      if (mounted) {
+        setState(() {
+          creditCards = [];
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -73,12 +91,10 @@ class _SelectCardState extends State<SelectCard> {
       if (isSelected) {
         return widget.space;
       } else {
-        /// Space from top to place put unselect cards.
         return kSpaceUnselectedCardToTop +
             toUnselectedCardPositionIndex(index) * kSpaceBetweenUnselectCard;
       }
     } else {
-      /// Top first emptySpace + CardSpace + emptySpace + ...
       return widget.space + index * kCardHeight + index * widget.space;
     }
   }
@@ -134,100 +150,83 @@ class _SelectCardState extends State<SelectCard> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Cards'),
+        title: const Text('Your cards'),
       ),
-      body: creditCards.isEmpty
-          ? Center(
-              child: Text(
-                'No saved cards yet. Tap + to add one.',
-                style: greyTextStyle.copyWith(fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-            )
-          : SizedBox.expand(
-        child: SingleChildScrollView(
-          child: Stack(alignment: Alignment.center,
-            children: [
-              AnimatedContainer(
-                duration: kAnimationDuration,
-                height: totalHeightTotalCard(),
-                width: mediaQuery.size.width,
-              ),
-              for (int i = 0; i < creditCards.length; i++)
-                AnimatedPositioned(
-                  top: _getCardTopPosititoned(i, i == selectedCardIndex),
-                  duration: kAnimationDuration,
-                  child: AnimatedScale(
-                    scale: _getCardScale(i, i == selectedCardIndex),
-                    duration: kAnimationDuration,
-                    child: GestureDetector(
-                      onTap: creditCards[i].onTap,
-                      child: creditCards[i],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          : creditCards.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'No saved cards yet. Tap + to add one.',
+                      style: greyTextStyle.copyWith(fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : SizedBox.expand(
+                  child: SingleChildScrollView(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: kAnimationDuration,
+                          height: totalHeightTotalCard(),
+                          width: mediaQuery.size.width,
+                        ),
+                        for (int i = 0; i < creditCards.length; i++)
+                          AnimatedPositioned(
+                            top: _getCardTopPosititoned(
+                                i, i == selectedCardIndex),
+                            duration: kAnimationDuration,
+                            child: AnimatedScale(
+                              scale: _getCardScale(i, i == selectedCardIndex),
+                              duration: kAnimationDuration,
+                              child: GestureDetector(
+                                onTap: creditCards[i].onTap,
+                                child: creditCards[i],
+                              ),
+                            ),
+                          ),
+                        if (selectedCardIndex != null)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              onVerticalDragEnd: (_) => unSelectCard(),
+                              onVerticalDragStart: (_) => unSelectCard(),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
-              if (selectedCardIndex != null)
-                Positioned.fill(
-                    child: GestureDetector(
-                  onVerticalDragEnd: (_) {
-                    unSelectCard();
-                  },
-                  onVerticalDragStart: (_) {
-                    unSelectCard();
-                  },
-                ))
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
 
-class CreditCard extends StatelessWidget {
-  const CreditCard({
-    Key? key,
+class _SavedCardEntry extends StatelessWidget {
+  const _SavedCardEntry({
     required this.cardData,
     required this.onTap,
-    required this.backgroundImageIndex,
-    required bool isSelected,
-  }) : super(key: key);
+    required this.backgroundIndex,
+  });
 
   final Map<String, dynamic> cardData;
   final VoidCallback onTap;
-  final int backgroundImageIndex;
+  final int backgroundIndex;
 
   @override
   Widget build(BuildContext context) {
-    final List<String> backgroundImages = [
-      'assets/bg4.jpg',
-      // 'assets/bg5.jpg',
-      'assets/bg6.jpg',
-      'assets/bg7.jpg',
-      'assets/bg8.jpg',
-      'assets/bg9.jpg',
-      // Add more background images as needed
-    ];
-
-    // Determine the background image path based on the index
-    final String backgroundImagePath =
-        backgroundImages[backgroundImageIndex % backgroundImages.length];
-
     return Center(
       child: GestureDetector(
         onTap: onTap,
-        child: CreditCardWidget(
-          cardNumber: CardDisplay.number(cardData),
-          expiryDate: CardDisplay.expiry(cardData),
+        child: SavedCardWidget(
           cardHolderName: CardDisplay.holder(cardData),
-          cvvCode: CardDisplay.cvv(cardData),
-          showBackView: false,
-          isSwipeGestureEnabled: false, enableFloatingCard: true,isHolderNameVisible: true,
+          maskedNumber: CardDisplay.number(cardData),
+          expiryDate: CardDisplay.expiry(cardData),
+          brand: cardData['brand']?.toString(),
           height: kCardHeight,
           width: kCardWidth,
-          backgroundImage: backgroundImagePath,
-          // cardBgColor: _getColorFromHex(cardData['backgroundColor']),
-          onCreditCardWidgetChange: (_) {},
         ),
       ),
     );

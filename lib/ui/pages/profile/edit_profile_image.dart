@@ -40,6 +40,9 @@ class _EditProfileImagePageState extends State<EditProfileImagePage> {
     }
     final ok = await ImageService.uploadAndSetProfileImage(_pickedFile!);
     if (!mounted) return;
+    if (ok) {
+      await _fetchProfileImage();
+    }
     _snack(ok ? 'Image saved successfully' : 'Failed to save image',
         ok ? Colors.green : Colors.red);
   }

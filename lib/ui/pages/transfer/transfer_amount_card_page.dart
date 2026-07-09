@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/services/payment_service.dart';
-import 'package:flutter_ewallet/ui/pages/transfer/loading_card.dart';
+import 'package:flutter_ewallet/ui/pages/transfer/payment_processing_screen.dart';
+import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_card.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
+import 'package:flutter_ewallet/utils/pin_gate.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
 class TransferCardAmountPage extends StatefulWidget {
@@ -30,41 +32,47 @@ class TransferCardAmountPage extends StatefulWidget {
 class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
   final TextEditingController amountController =
       TextEditingController(text: '0');
+  bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-
-    amountController.addListener(
-      () {
-        final text = amountController.text;
-        final number = int.tryParse(text.replaceAll(RegExp(r'[.,]'), ''));
-
-        if (number != null) {
-          final formattedText = number.toString();
-          setState(() {
-            amountController.value = amountController.value.copyWith(
-              text: formattedText,
-              selection: TextSelection.collapsed(offset: formattedText.length),
-            );
-          });
-        }
-      },
-    );
+    amountController.addListener(_formatAmount);
   }
 
-  Future<void> sendTransferData(
-    String cardHolderName,
-    String toIban,
-    String amount,
-    String description,
-    String cvv,
-    String cardNumber,
-    String expiry,
-  ) async {
-    // The backend models money movement as wallet-to-wallet transfers by IBAN.
-    // A "card payment" here is settled from the user's primary wallet to the
-    // recipient IBAN; the entered card is a UI affordance only.
+  @override
+  void dispose() {
+    amountController.removeListener(_formatAmount);
+    amountController.dispose();
+    super.dispose();
+  }
+
+  void _formatAmount() {
+    final text = amountController.text;
+    final number = int.tryParse(text.replaceAll(RegExp(r'[.,]'), ''));
+    if (number != null) {
+      final formattedText = number.toString();
+      if (formattedText != text) {
+        amountController.value = amountController.value.copyWith(
+          text: formattedText,
+          selection: TextSelection.collapsed(offset: formattedText.length),
+        );
+      }
+    }
+  }
+
+  Future<void> _checkout() async {
+    final parsedAmount = double.tryParse(amountController.text);
+    if (parsedAmount == null || parsedAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    final pinOk = await requirePin(context);
+    if (!pinOk || !mounted) return;
+
     final fromIban = await PaymentService.primaryWalletIban();
     if (fromIban == null) {
       if (!mounted) return;
@@ -74,20 +82,13 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
       return;
     }
 
-    final parsedAmount = double.tryParse(amount);
-    if (parsedAmount == null || parsedAmount <= 0) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
-      );
-      return;
-    }
+    setState(() => _submitting = true);
 
     final transferData = {
       'fromBankAccountIban': fromIban,
-      'toBankAccountIban': toIban,
+      'toBankAccountIban': widget.toIban,
       'amount': parsedAmount,
-      'description': description,
+      'description': 'Card payment',
       'typeId': 1,
     };
 
@@ -96,20 +97,30 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
           await HttpService.postWithAuth('/bank-accounts/transfer', transferData);
 
       if (!mounted) return;
+      setState(() => _submitting = false);
+
       if (response['message'] == 'Success') {
         AppEvents.instance.notifyWalletChanged();
         Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const LoadingCard()));
+          MaterialPageRoute(
+            builder: (_) => PaymentProcessingScreen(
+              nextPage: const TransferSuccessCard(),
+              message: 'Processing card payment…',
+            ),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(response['message']?.toString() ?? 'Transfer failed')),
+            content: Text(response['message']?.toString() ?? 'Payment failed'),
+          ),
         );
       }
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
+      setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error sending transfer')),
+        const SnackBar(content: Text('Error sending payment')),
       );
     }
   }
@@ -118,20 +129,16 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
     if (amountController.text == '0') {
       amountController.text = '';
     }
-    setState(() {
-      amountController.text = amountController.text + number;
-    });
+    amountController.text = amountController.text + number;
   }
 
   void deleteAmount() {
     if (amountController.text.isNotEmpty) {
-      setState(() {
-        amountController.text = amountController.text
-            .substring(0, amountController.text.length - 1);
-        if (amountController.text == '') {
-          amountController.text = '0';
-        }
-      });
+      amountController.text = amountController.text
+          .substring(0, amountController.text.length - 1);
+      if (amountController.text.isEmpty) {
+        amountController.text = '0';
+      }
     }
   }
 
@@ -139,69 +146,53 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: darkBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: darkBackgroundColor,
+        foregroundColor: whiteColor,
+        title: const Text('Enter amount'),
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           children: [
             Center(
               child: Text(
-                'Total Amount',
+                'Total amount',
                 style: whiteTextStyle.copyWith(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: semiBold,
                 ),
               ),
             ),
-            const SizedBox(
-              height: 48,
-            ),
+            const SizedBox(height: 48),
             Center(
               child: Container(
                 padding: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
                   border: Border(
-                      bottom: BorderSide(color: greyColor.withOpacity(0.4))),
+                    bottom: BorderSide(color: greyColor.withOpacity(0.4)),
+                  ),
                 ),
                 child: Text(
                   '₹ ${amountController.text}',
-                  style:
-                      whiteTextStyle.copyWith(fontSize: 40, fontWeight: semiBold),
+                  style: whiteTextStyle.copyWith(
+                    fontSize: 40,
+                    fontWeight: semiBold,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(
-              height: 48,
-            ),
+            const SizedBox(height: 48),
             NumericKeypad(
               onDigit: addAmount,
               onDelete: deleteAmount,
             ),
-            const SizedBox(
-              height: 40,
-            ),
+            const SizedBox(height: 40),
             CustomFilledButton(
-              title: 'Checkout Now',
-              onPressed: () async {
-                await sendTransferData(
-                    widget.cardHolderName,
-                    widget.toIban,
-                    amountController.text,
-                    "Card Transfer",
-                    widget.cvv,
-                    widget.cardNumber,
-                    widget.expiryDate);
-              },
+              title: _submitting ? 'Please wait…' : 'Confirm & pay',
+              onPressed: _submitting ? null : _checkout,
             ),
-            const SizedBox(
-              height: 25,
-            ),
-            CustomTextButton(
-              title: 'Term & Conditions',
-              onPressed: () {},
-            ),
-            const SizedBox(
-              height: 40,
-            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
