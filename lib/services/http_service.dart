@@ -90,12 +90,35 @@ class HttpService {
 
   static Map<String, dynamic> _decode(http.Response response) {
     if (response.body.isEmpty) {
+      if (response.statusCode >= 400) {
+        throw ApiException('Request failed (${response.statusCode})');
+      }
       return {'status': response.statusCode};
     }
+
     final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
+    final Map<String, dynamic> body = decoded is Map<String, dynamic>
+        ? decoded
+        : {'data': decoded};
+
+    if (response.statusCode >= 400) {
+      final message = body['message']?.toString();
+      final errorCode = body['errorCode']?.toString();
+      throw ApiException(
+        message ?? errorCode ?? 'Request failed (${response.statusCode})',
+      );
     }
-    return {'data': decoded};
+
+    return body;
   }
+}
+
+/// Raised when the API returns a non-success HTTP status.
+class ApiException implements Exception {
+  ApiException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }

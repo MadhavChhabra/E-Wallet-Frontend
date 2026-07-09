@@ -55,14 +55,12 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
     String formattedTime = DateFormat("dd.MM.yyyy HH:mm:ss").format(now);
 
     final transferData = {
-      'fromBankAccountiban': fromIban,
-      'toBankAccountiban': toIban,
+      'fromBankAccountIban': fromIban,
+      'toBankAccountIban': toIban,
       'amount': balance,
-      'typeId': 3,
+      'typeId': 1,
       'description': description,
-      'createdAt': formattedTime
-
-      // Add any other data you need to send
+      'createdAt': formattedTime,
     };
 
     try {
@@ -72,15 +70,23 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
       if (!mounted) return;
       if (response['message'] == 'Success') {
         AppEvents.instance.notifyWalletChanged();
-        // If successful, navigate to success page
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (context)=> const LoadingAnimationScreen())
-            );
+          MaterialPageRoute(
+              builder: (context) => const LoadingAnimationScreen()),
+        );
       } else {
-        // Handle other status codes here
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                response['message']?.toString() ?? 'Transfer failed'),
+          ),
+        );
       }
     } catch (error) {
-      // Handle any errors that occur during the process
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
     }
   }
 

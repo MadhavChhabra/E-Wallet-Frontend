@@ -102,19 +102,10 @@ class TransactionService {
     var isOutgoing = false;
     String? counterpartyUsername;
 
+    // Backend type ids (DataInitializer): 1=Transfer, 2=Deposit, 3=Withdraw,
+    // 4=Top Up, 5=Payment.
     switch (typeId) {
       case 1:
-        icon = 'assets/ic_transaction_cat1.png';
-        sign = '+';
-        title = 'Deposit';
-        break;
-      case 2:
-        icon = 'assets/ic_transaction_cat3.png';
-        sign = '-';
-        title = 'Withdrawal';
-        isOutgoing = true;
-        break;
-      case 3:
         final fromId = raw['fromBankAccount']?['id']?.toString();
         final outgoing =
             fromId != null && bankAccountIds.contains(fromId);
@@ -126,6 +117,28 @@ class TransactionService {
         isOutgoing = outgoing;
         counterpartyUsername =
             raw['toBankAccount']?['user']?['username']?.toString();
+        break;
+      case 2:
+        icon = 'assets/ic_transaction_cat1.png';
+        sign = '+';
+        title = 'Deposit';
+        break;
+      case 3:
+        icon = 'assets/ic_transaction_cat3.png';
+        sign = '-';
+        title = 'Withdrawal';
+        isOutgoing = true;
+        break;
+      case 4:
+        icon = 'assets/ic_transaction_cat1.png';
+        sign = '+';
+        title = 'Top Up';
+        break;
+      case 5:
+        icon = 'assets/ic_transaction_cat3.png';
+        sign = '-';
+        title = 'Payment';
+        isOutgoing = true;
         break;
       default:
         icon = 'assets/ic_transaction_cat5.png';
