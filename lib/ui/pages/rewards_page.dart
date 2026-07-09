@@ -36,6 +36,7 @@ class RewardsPage extends StatelessWidget {
               title: '5% cashback on top-up',
               subtitle: 'Valid on Razorpay test payments this week.',
               accent: purpleColor,
+              onTap: () => Navigator.pushNamed(context, '/topup-amount'),
             ),
             const SizedBox(height: 12),
             _OfferCard(
@@ -156,60 +157,69 @@ class _OfferCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.accent,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final Color accent;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: whiteColor,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: blackColor.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: whiteColor,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: blackColor.withOpacity(0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: accent),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: blackTextStyle.copyWith(
-                    fontWeight: semiBold,
-                    fontSize: 15,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: greyTextStyle.copyWith(fontSize: 13, height: 1.35),
+                child: Icon(icon, color: accent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: blackTextStyle.copyWith(
+                        fontWeight: semiBold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: greyTextStyle.copyWith(fontSize: 13, height: 1.35),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

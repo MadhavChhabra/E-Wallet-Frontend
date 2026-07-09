@@ -65,7 +65,12 @@ class MyApp extends StatelessWidget {
         '/topup': (context) => const TopUpPage(),
         '/topup-amount': (context) => const TopUpAmountPage(),
         '/topup-success': (context) => const TopUpSuccessPage(),
-        '/transfer': (context) => const TransferPage(),
+        '/transfer': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return TransferPage(
+            receiverIban: args is String ? args : null,
+          );
+        },
         '/selfTransfer': (context) => const SelfTransferPage(),
         // '/transfer-amount': (context) => const TransferAmountPage(),
         '/transfer-success': (context) => const TransferSuccessPage(),

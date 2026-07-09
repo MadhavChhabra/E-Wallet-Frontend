@@ -68,6 +68,11 @@ class _TransferPageState extends State<TransferPage> {
   final TextEditingController descriptionController =
       TextEditingController(text: '');
 
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final receiverIban = widget.receiverIban; // Get the argument for clarity
@@ -123,40 +128,32 @@ class _TransferPageState extends State<TransferPage> {
           CustomFilledButton(
             title: 'Continue',
             onPressed: () async {
-              // Navigate to transfer-amount route with IBAN and description data
-              if (selectedFromIban != null) {
-                final routerPin = Navigator.pushNamed(context, '/pin');
-                if (await routerPin == true) {
-                  if (!context.mounted) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TransferAmountPage(
-                        fromIban: selectedFromIban!,
-                        toIban: toIbanController.text,
-                        description: descriptionController.text,
-                      ),
+              if (selectedFromIban == null) {
+                _showError('Please select your source account.');
+                return;
+              }
+              final toIban = toIbanController.text.trim();
+              if (toIban.isEmpty) {
+                _showError('Please enter the receiver\'s IBAN.');
+                return;
+              }
+              if (selectedFromIban == toIban) {
+                _showError('Source and destination must be different.');
+                return;
+              }
+              final routerPin = Navigator.pushNamed(context, '/pin');
+              if (await routerPin == true) {
+                if (!context.mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TransferAmountPage(
+                      fromIban: selectedFromIban!,
+                      toIban: toIban,
+                      description: descriptionController.text,
                     ),
-                  );
-                }
-              } else {
-                // Handle case when no IBAN is selected
-                showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text('Error'),
-                        content: const Text('Please select your IBAN.'),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      );
-                    });
+                  ),
+                );
               }
             },
           ),

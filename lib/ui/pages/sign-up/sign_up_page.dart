@@ -1,11 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/utils/shared.dart';
 
-import 'package:http/http.dart' as http;
-
-import '../../../utils/api_config.dart';
 import '../../../utils/theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -35,44 +31,53 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> signUp() async {
-    final url = '${ApiConfig.baseUrl}/auth/signup';
-    final firstname = firstnameController.text;
-    final lastname = lastnameController.text;
-    final username = usernameController.text;
-    final email = emailController.text;
+    final firstname = firstnameController.text.trim();
+    final lastname = lastnameController.text.trim();
+    final username = usernameController.text.trim();
+    final email = emailController.text.trim();
     final password = passwordController.text;
 
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        body: jsonEncode({
-          'firstName': firstname,
-          'lastName': lastname,
-          'email': email,
-          'username': username,
-          'password': password,
-          'roles': ['ROLE_USER']
-        }),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (!mounted) return;
-      if (response.statusCode == 201) {
-        Navigator.pushNamed(context, '/sign-in');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Sign up successful! Please log in to proceed.')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sign up failed')),
-        );
-      }
-    } catch (_) {
+    if (firstname.length < 3 ||
+        lastname.length < 3 ||
+        username.length < 3 ||
+        email.length < 6 ||
+        password.length < 6) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Could not reach the server. Please try again.')),
+          content: Text(
+              'Names and username need at least 3 characters; password at least 6.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await HttpService.postWithoutAuth('/auth/signup', {
+        'firstName': firstname,
+        'lastName': lastname,
+        'email': email,
+        'username': username,
+        'password': password,
+        'roles': ['ROLE_USER'],
+      });
+
+      if (!mounted) return;
+      Navigator.pushNamed(context, '/sign-in');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Sign up successful! Please log in to proceed.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', '').isNotEmpty
+                ? e.toString().replaceFirst('Exception: ', '')
+                : 'Sign up failed',
+          ),
+        ),
       );
     }
   }

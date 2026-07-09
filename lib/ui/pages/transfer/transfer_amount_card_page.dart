@@ -74,10 +74,19 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
       return;
     }
 
+    final parsedAmount = double.tryParse(amount);
+    if (parsedAmount == null || parsedAmount <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
     final transferData = {
       'fromBankAccountIban': fromIban,
       'toBankAccountIban': toIban,
-      'amount': amount,
+      'amount': parsedAmount,
       'description': description,
       'typeId': 1,
     };

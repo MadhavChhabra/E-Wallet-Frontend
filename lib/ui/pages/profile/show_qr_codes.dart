@@ -60,6 +60,19 @@ class _QRCodeGeneratorState extends State<QRCodeGenerator> {
 
   @override
   Widget build(BuildContext context) {
+    if (fromBankAccountIbans.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Your QR Code')),
+        body: Center(
+          child: Text(
+            'Add a wallet account to generate a payment QR code.',
+            style: greyTextStyle.copyWith(fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your QR Code'),

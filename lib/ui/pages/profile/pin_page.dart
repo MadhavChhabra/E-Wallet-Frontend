@@ -36,6 +36,7 @@ class _PinPageState extends State<PinPage> {
       if (pinController.text == expected) {
         Navigator.pop(context, true);
       } else {
+        setState(() => pinController.text = '');
         showCustomSnackBar(context, 'Wrong PIN. Please Try Again');
       }
     }

@@ -6,6 +6,7 @@ class TransactionItem {
     required this.value,
     required this.createdAt,
     this.counterpartyUsername,
+    this.counterpartyIban,
     this.isOutgoing = false,
   });
 
@@ -15,5 +16,6 @@ class TransactionItem {
   final String value;
   final DateTime createdAt;
   final String? counterpartyUsername;
+  final String? counterpartyIban;
   final bool isOutgoing;
 }

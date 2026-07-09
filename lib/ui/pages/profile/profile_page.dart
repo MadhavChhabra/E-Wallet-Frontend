@@ -117,7 +117,15 @@ class _ProfilePageState extends State<ProfilePage> {
                   height: 16,
                 ),
                 Text(
-                  "${SharedUser().getFirstname()!} ${SharedUser().getLastname()}",
+                  [
+                    SharedUser().getFirstname(),
+                    SharedUser().getLastname(),
+                  ].whereType<String>().where((s) => s.isNotEmpty).join(' ').trim().isEmpty
+                      ? 'Wallet user'
+                      : [
+                          SharedUser().getFirstname(),
+                          SharedUser().getLastname(),
+                        ].whereType<String>().join(' '),
                   style: blackTextStyle.copyWith(
                     fontSize: 18,
                     fontWeight: medium,

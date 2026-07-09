@@ -104,12 +104,28 @@ class HttpService {
     if (response.statusCode >= 400) {
       final message = body['message']?.toString();
       final errorCode = body['errorCode']?.toString();
+      final validation = _firstValidationError(body['errors']);
       throw ApiException(
-        message ?? errorCode ?? 'Request failed (${response.statusCode})',
+        validation ??
+            message ??
+            errorCode ??
+            'Request failed (${response.statusCode})',
       );
     }
 
     return body;
+  }
+
+  static String? _firstValidationError(dynamic errors) {
+    if (errors is! List || errors.isEmpty) return null;
+    final first = errors.first;
+    if (first is Map) {
+      final field = first['field']?.toString();
+      final message = first['message']?.toString();
+      if (field != null && message != null) return '$field: $message';
+      return message;
+    }
+    return null;
   }
 }
 

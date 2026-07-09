@@ -76,6 +76,7 @@ class TransactionService {
     final seen = <String>{};
     final names = <String>[];
     for (final item in items) {
+      if (!item.isOutgoing) continue;
       final name = item.counterpartyUsername;
       if (name == null || name.isEmpty || seen.contains(name)) continue;
       seen.add(name);
@@ -83,6 +84,22 @@ class TransactionService {
       if (names.length >= limit) break;
     }
     return names;
+  }
+
+  /// Maps a recent counterparty username to their IBAN for quick re-send.
+  String? counterpartyIbanForUsername(
+    List<TransactionItem> items,
+    String username,
+  ) {
+    for (final item in items) {
+      if (item.isOutgoing &&
+          item.counterpartyUsername == username &&
+          item.counterpartyIban != null &&
+          item.counterpartyIban!.isNotEmpty) {
+        return item.counterpartyIban;
+      }
+    }
+    return null;
   }
 
   TransactionItem? _mapTransaction(
@@ -101,6 +118,7 @@ class TransactionService {
     late String title;
     var isOutgoing = false;
     String? counterpartyUsername;
+    String? counterpartyIban;
 
     // Backend type ids (DataInitializer): 1=Transfer, 2=Deposit, 3=Withdraw,
     // 4=Top Up, 5=Payment.
@@ -115,8 +133,15 @@ class TransactionService {
         sign = outgoing ? '-' : '+';
         title = 'Transfer';
         isOutgoing = outgoing;
-        counterpartyUsername =
-            raw['toBankAccount']?['user']?['username']?.toString();
+        if (outgoing) {
+          counterpartyUsername =
+              raw['toBankAccount']?['user']?['username']?.toString();
+          counterpartyIban = raw['toBankAccount']?['iban']?.toString();
+        } else {
+          counterpartyUsername =
+              raw['fromBankAccount']?['user']?['username']?.toString();
+          counterpartyIban = raw['fromBankAccount']?['iban']?.toString();
+        }
         break;
       case 2:
         icon = 'assets/ic_transaction_cat1.png';
@@ -153,6 +178,7 @@ class TransactionService {
       value: '$sign ${formatCurrency(amount, symbol: '')}',
       createdAt: createdAt,
       counterpartyUsername: counterpartyUsername,
+      counterpartyIban: counterpartyIban,
       isOutgoing: isOutgoing,
     );
   }
@@ -162,22 +188,17 @@ class TransactionService {
       return DateTime.fromMillisecondsSinceEpoch(0);
     }
 
-    final parts = createdAtString.split(' ');
-    if (parts.length < 2) return DateTime.fromMillisecondsSinceEpoch(0);
-
-    final dateParts = parts[0].split('-');
-    final timeParts = parts[1].split(':');
-    if (dateParts.length < 3 || timeParts.length < 2) {
-      return DateTime.fromMillisecondsSinceEpoch(0);
+    // Backend format: dd-MM-yyyy HH:mm:ss
+    try {
+      return DateFormat('dd-MM-yyyy HH:mm:ss').parse(createdAtString);
+    } catch (_) {
+      // Legacy / alternate formats.
     }
 
-    return DateTime(
-      int.parse(dateParts[2]),
-      int.parse(dateParts[1]),
-      int.parse(dateParts[0]),
-      int.parse(timeParts[0]),
-      int.parse(timeParts[1]),
-      int.parse(timeParts[2].split('.')[0]),
-    );
+    try {
+      return DateFormat('dd.MM.yyyy HH:mm:ss').parse(createdAtString);
+    } catch (_) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
   }
 }

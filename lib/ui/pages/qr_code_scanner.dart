@@ -14,6 +14,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool _flashOn = false;
+  bool _handled = false;
   String scannedText = "";
 
   @override
@@ -118,15 +119,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        scannedText = scanData.code!;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (BuildContext context) =>
-                TransferPage(receiverIban: scannedText),
-          ),
-        );
-      });
+      final code = scanData.code?.trim();
+      if (code == null || code.isEmpty || _handled) return;
+      _handled = true;
+      controller.pauseCamera();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) => TransferPage(receiverIban: code),
+        ),
+      );
     });
   }
 }

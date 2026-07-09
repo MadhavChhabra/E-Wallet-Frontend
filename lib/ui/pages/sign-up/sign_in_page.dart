@@ -7,7 +7,6 @@ import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
 import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
-import 'package:http/http.dart' as http;
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -86,49 +85,41 @@ class _SignInPageState extends State<SignInPage> {
     }
 
     setState(() => _signingIn = true);
-    final url = '${ApiConfig.baseUrl}/auth/login';
 
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-        }),
-        headers: {'Content-Type': 'application/json'},
+      final response = await HttpService.postWithoutAuth('/auth/login', {
+        'username': username,
+        'password': password,
+      });
+
+      final data = response['data'];
+      final token = data is Map ? data['token'] : null;
+      final refreshToken = data is Map ? data['refreshToken'] : null;
+
+      if (token != null && token.toString().isNotEmpty) {
+        await SharedUser().updateLoggedInState(true);
+        await SharedUser().writeToStorage('token', token);
+        await SharedUser().writeToStorage('refreshToken', refreshToken);
+        await SharedUser().writeToStorage('user', jsonEncode(data));
+        SharedUser().clearCachedUser();
+      }
+
+      if (!mounted) return;
+      showTopSnackBar(
+        Overlay.of(context),
+        snackBarPosition: SnackBarPosition.bottom,
+        dismissType: DismissType.onSwipe,
+        dismissDirection: const [DismissDirection.horizontal],
+        const CustomSnackBar.success(message: 'Log In Successful!'),
       );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        final data = responseData['data'];
-        final token = data['token'];
-        final refreshToken = data['refreshToken'];
-
-        if (token != null && token.isNotEmpty) {
-          await SharedUser().updateLoggedInState(true);
-          await SharedUser().writeToStorage('token', token);
-          await SharedUser().writeToStorage('refreshToken', refreshToken);
-          await SharedUser().writeToStorage('user', jsonEncode(data));
-          SharedUser().clearCachedUser();
-        }
-
-        if (!mounted) return;
-        showTopSnackBar(
-          Overlay.of(context),
-          snackBarPosition: SnackBarPosition.bottom,
-          dismissType: DismissType.onSwipe,
-          dismissDirection: const [DismissDirection.horizontal],
-          const CustomSnackBar.success(message: 'Log In Successful!'),
-        );
-
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-      } else {
-        _showError(
-            'Something went wrong. Please check your credentials and try again.');
-      }
-    } catch (_) {
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } catch (e) {
       _showError(
-          'Could not reach the server. Check your connection and try again.');
+        e.toString().replaceFirst('Exception: ', '').isNotEmpty
+            ? e.toString().replaceFirst('Exception: ', '')
+            : 'Something went wrong. Please check your credentials and try again.',
+      );
     } finally {
       if (mounted) setState(() => _signingIn = false);
     }

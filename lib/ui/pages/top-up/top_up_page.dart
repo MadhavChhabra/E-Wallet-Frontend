@@ -1,96 +1,110 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ewallet/ui/widgets/custom_bank_card.dart';
+import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
+import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
-class TopUpPage extends StatelessWidget {
-  const TopUpPage({Key? key}) : super(key: key);
+/// Razorpay wallet top-up entry screen — shows the user's real wallet details
+/// before continuing to the amount + checkout flow.
+class TopUpPage extends StatefulWidget {
+  const TopUpPage({super.key});
+
+  @override
+  State<TopUpPage> createState() => _TopUpPageState();
+}
+
+class _TopUpPageState extends State<TopUpPage> {
+  String? _iban;
+  String _displayName = '';
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWallet();
+  }
+
+  Future<void> _loadWallet() async {
+    try {
+      final user = await SharedUser().getCurrentUser();
+      final iban = await PaymentService.primaryWalletIban();
+      if (!mounted) return;
+      setState(() {
+        _iban = iban;
+        _displayName = user != null
+            ? '${user.firstname ?? ''} ${user.lastname ?? ''}'.trim()
+            : '';
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Top Up'),
-      ),
+      appBar: AppBar(title: const Text('Top Up')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
-          const SizedBox(
-            height: 40,
-          ),
+          const SizedBox(height: 40),
           Text(
-            'Wallet',
+            'Add money via Razorpay',
             style: blackTextStyle.copyWith(fontSize: 16, fontWeight: semiBold),
           ),
-          const SizedBox(
-            height: 10,
-          ),
-          Row(
-            children: [
-              Image.asset(
-                'assets/img_wallet.png',
-                width: 80,
-              ),
-              const SizedBox(
-                width: 16,
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '8008 2208 1995',
-                    style: blackTextStyle.copyWith(
-                        fontSize: 16, fontWeight: semiBold),
+          const SizedBox(height: 10),
+          if (_loading)
+            const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          else if (_iban == null)
+            Text(
+              'Add a wallet account first, then return here to top up.',
+              style: greyTextStyle.copyWith(fontSize: 14),
+            )
+          else
+            Row(
+              children: [
+                Image.asset('assets/img_wallet.png', width: 80),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _iban!,
+                        style: blackTextStyle.copyWith(
+                          fontSize: 14,
+                          fontWeight: semiBold,
+                        ),
+                      ),
+                      if (_displayName.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(_displayName, style: greyTextStyle.copyWith(fontSize: 12)),
+                      ],
+                    ],
                   ),
-                  const SizedBox(
-                    height: 2,
-                  ),
-                  Text(
-                    'Madhav',
-                    style: blackTextStyle.copyWith(
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(
-            height: 40,
-          ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 40),
           Text(
-            'Select Bank',
+            'Secure payment',
             style: blackTextStyle.copyWith(fontSize: 16, fontWeight: semiBold),
           ),
-          const SizedBox(
-            height: 14,
+          const SizedBox(height: 8),
+          Text(
+            'You will be redirected to Razorpay Checkout (test mode) to add funds to your wallet.',
+            style: greyTextStyle.copyWith(fontSize: 14, height: 1.4),
           ),
-          const CustomBankCard(
-            imageUrl: 'assets/img_bank_bca.png',
-            bankName: 'Bank BCA',
-            isSelected: true,
-          ),
-          const CustomBankCard(
-            imageUrl: 'assets/img_bank_bni.png',
-            bankName: 'Bank BNI',
-          ),
-          const CustomBankCard(
-            imageUrl: 'assets/img_bank_mandiri.png',
-            bankName: 'Bank Mandiri',
-          ),
-          const CustomBankCard(
-            imageUrl: 'assets/img_bank_ocbc.png',
-            bankName: 'Bank OCBC',
-          ),
-          const SizedBox(
-            height: 18,
-          ),
+          const SizedBox(height: 24),
           CustomFilledButton(
             title: 'Continue',
-            onPressed: () {
-              Navigator.pushNamed(context, '/topup-amount');
-            },
-          )
+            onPressed: _iban == null
+                ? null
+                : () {
+                    Navigator.pushNamed(context, '/topup-amount');
+                  },
+          ),
         ],
       ),
     );

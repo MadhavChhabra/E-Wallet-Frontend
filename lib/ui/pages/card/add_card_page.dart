@@ -212,20 +212,14 @@ backgroundImage: "assets/bg8.jpg",
   void _onValidate() async {
     fetchBankAccountId(selectedFromIban.toString());
 
-    int? userId;
-    final UserModel? user = await SharedUser().getCurrentUser();
-    if (user != null) {
-      userId = user.id;
-    }
     if (formKey.currentState?.validate() ?? false) {
 
       final cardData = {
-        'cardHolderName': cardHolderName,
-        'cardNumber': cardNumber,
+        'cardHolderName': cardHolderName.trim(),
+        'cardNumber': cardNumber.replaceAll(RegExp(r'\s+'), ''),
         'expiryDate': expiryDate,
         'cvv': cvvCode,
-        'bankAccountId': bankAccountId,
-        'userId': userId.toString()
+        if (bankAccountId > 0) 'bankAccountId': bankAccountId,
       };
 
       try {
@@ -234,9 +228,13 @@ backgroundImage: "assets/bg8.jpg",
           Fluttertoast.showToast(msg: 'Card created successfully!');
           if (!mounted) return;
           Navigator.of(context).pop();
+        } else {
+          Fluttertoast.showToast(
+              msg: response['message']?.toString() ?? 'Could not save card');
         }
-      } catch (_) {
-        Fluttertoast.showToast(msg: 'An error occurred. Please try again.');
+      } catch (e) {
+        Fluttertoast.showToast(
+            msg: e.toString().replaceFirst('Exception: ', ''));
       }
     }
   }

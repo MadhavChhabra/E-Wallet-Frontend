@@ -290,8 +290,11 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         Fluttertoast.showToast(
             msg: response['message']?.toString() ?? 'Google sign-in failed');
       }
-    } catch (_) {
-      Fluttertoast.showToast(msg: 'Google sign-in failed');
+    } catch (e) {
+      Fluttertoast.showToast(
+          msg: e.toString().replaceFirst('Exception: ', '').isNotEmpty
+              ? e.toString().replaceFirst('Exception: ', '')
+              : 'Google sign-in failed');
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
     }

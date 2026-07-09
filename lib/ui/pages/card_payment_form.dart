@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_credit_card/flutter_credit_card.dart';
+import 'package:flutter_ewallet/utils/card_display.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_card_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -137,10 +138,10 @@ class _CardPaymentPageState extends State<CardPaymentPage>
                                     : [],
                               ),
                               child: CreditCardWidget(
-                                cardNumber: cardData['cardNumber'],
-                                expiryDate: cardData['expiryDate'],
-                                cardHolderName: cardData['cardHolderName'],
-                                cvvCode: cardData['cvv'],
+                                cardNumber: CardDisplay.number(cardData),
+                                expiryDate: CardDisplay.expiry(cardData),
+                                cardHolderName: CardDisplay.holder(cardData),
+                                cvvCode: CardDisplay.cvv(cardData),
                                 showBackView: false,
                                 isSwipeGestureEnabled: false,
                                 // enableFloatingCard: true,
@@ -216,24 +217,31 @@ class _CardPaymentPageState extends State<CardPaymentPage>
                             padding: const EdgeInsets.all(16.0),
                             child: CustomFilledButton(
                               onPressed: () {
-                                if (selectedCardIndex != null) {
-                                  final selectedCard =
-                                      creditCards[selectedCardIndex!];
-                                  Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (context) => TransferCardAmountPage(
-                                      toIban: toIbanController.text,
-                                      cardNumber: selectedCard['cardNumber'],
-                                      expiryDate: selectedCard['expiryDate'],
-                                      cardHolderName:
-                                          selectedCard['cardHolderName'],
-                                      cvv: selectedCard['cvv'],
-                                    ),
-                                  ));
-                                } else {
-                                  
-                                              Fluttertoast.showToast(msg: 'Please select a card first.');
-
+                                if (selectedCardIndex == null) {
+                                  Fluttertoast.showToast(
+                                      msg: 'Please select a card first.');
+                                  return;
                                 }
+                                final toIban = toIbanController.text.trim();
+                                if (toIban.isEmpty) {
+                                  Fluttertoast.showToast(
+                                      msg: 'Please enter the receiver\'s IBAN.');
+                                  return;
+                                }
+                                final selectedCard =
+                                    creditCards[selectedCardIndex!];
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => TransferCardAmountPage(
+                                    toIban: toIban,
+                                    cardNumber:
+                                        CardDisplay.number(selectedCard),
+                                    expiryDate:
+                                        CardDisplay.expiry(selectedCard),
+                                    cardHolderName:
+                                        CardDisplay.holder(selectedCard),
+                                    cvv: CardDisplay.cvv(selectedCard),
+                                  ),
+                                ));
                               },
                               title: 'Select this Card for Payment',
                             ),

@@ -5,7 +5,6 @@ import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
-import 'package:intl/intl.dart';
 
 class TransferAmountPage extends StatefulWidget {
   final String fromIban;
@@ -51,16 +50,21 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
 
   Future<void> sendTransferData(String fromIban, String toIban, String balance,
       String description) async {
-    var now = DateTime.now().toUtc();
-    String formattedTime = DateFormat("dd.MM.yyyy HH:mm:ss").format(now);
+    final amount = double.tryParse(balance);
+    if (amount == null || amount <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
 
     final transferData = {
       'fromBankAccountIban': fromIban,
       'toBankAccountIban': toIban,
-      'amount': balance,
+      'amount': amount,
       'typeId': 1,
       'description': description,
-      'createdAt': formattedTime,
     };
 
     try {

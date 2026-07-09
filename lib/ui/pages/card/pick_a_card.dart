@@ -1,6 +1,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_credit_card/flutter_credit_card.dart';
+import 'package:flutter_ewallet/utils/card_display.dart';
+import 'package:flutter_ewallet/utils/theme.dart';
 
 import '../../../services/http_service.dart';
 
@@ -134,7 +136,15 @@ class _SelectCardState extends State<SelectCard> {
       appBar: AppBar(
         title: const Text('Your Cards'),
       ),
-      body: SizedBox.expand(
+      body: creditCards.isEmpty
+          ? Center(
+              child: Text(
+                'No saved cards yet. Tap + to add one.',
+                style: greyTextStyle.copyWith(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            )
+          : SizedBox.expand(
         child: SingleChildScrollView(
           child: Stack(alignment: Alignment.center,
             children: [
@@ -207,10 +217,10 @@ class CreditCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: CreditCardWidget(
-          cardNumber: cardData['cardNumber'],
-          expiryDate: cardData['expiryDate'],
-          cardHolderName: cardData['cardHolderName'],
-          cvvCode: cardData['cvv'],
+          cardNumber: CardDisplay.number(cardData),
+          expiryDate: CardDisplay.expiry(cardData),
+          cardHolderName: CardDisplay.holder(cardData),
+          cvvCode: CardDisplay.cvv(cardData),
           showBackView: false,
           isSwipeGestureEnabled: false, enableFloatingCard: true,isHolderNameVisible: true,
           height: kCardHeight,

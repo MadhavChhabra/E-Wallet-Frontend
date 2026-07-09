@@ -7,6 +7,7 @@ import 'package:flutter_ewallet/ui/widgets/animated_entrance.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_home_services.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_latest_transaction_item.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_user.dart';
+import 'package:flutter_ewallet/utils/wallet_utils.dart';
 import 'package:flutter_ewallet/utils/shared.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
@@ -170,7 +171,7 @@ class _AccountsWidgetState extends State<AccountsWidget> {
           await HttpService.postWithAuth('/bank-accounts', {
             'name': 'My Wallet',
             'iban': generateIban(),
-            'balance': '5000',
+            'balance': 5000,
             'userId': userId,
           });
           return fetchAccountData();
@@ -232,7 +233,7 @@ class _AccountsWidgetState extends State<AccountsWidget> {
                         userFullName: bankAccount['name'],
                         name: bankAccount['name'],
                         iban: bankAccount['iban'],
-                        balance: (bankAccount['balance'] as num).toDouble(),
+                        balance: WalletUtils.parseBalance(bankAccount['balance']),
                       );
                     },
                     onPageChanged: (index) {
@@ -294,6 +295,7 @@ class SendAgainWidget extends StatefulWidget {
 
 class _SendAgainWidgetState extends State<SendAgainWidget> {
   List<String> sendList = [];
+  List<TransactionItem> _items = [];
   bool _loading = true;
 
   @override
@@ -321,6 +323,7 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
       );
       if (!mounted) return;
       setState(() {
+        _items = items;
         sendList = TransactionService.instance.recentCounterparties(items);
         _loading = false;
       });
@@ -359,9 +362,30 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
             ),
             itemCount: sendList.length,
             itemBuilder: (context, index) {
-              return CustomUser(
-                image: Image.asset('assets/placeholder_image.jpg'),
-                userName: sendList[index],
+              final name = sendList[index];
+              return GestureDetector(
+                onTap: () {
+                  final iban = TransactionService.instance
+                      .counterpartyIbanForUsername(_items, name);
+                  if (iban == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Could not find this contact. Use Send Money instead.'),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pushNamed(
+                    context,
+                    '/transfer',
+                    arguments: iban,
+                  );
+                },
+                child: CustomUser(
+                  image: Image.asset('assets/placeholder_image.jpg'),
+                  userName: name,
+                ),
               );
             },
           ),
@@ -546,9 +570,10 @@ class _HomepageState extends State<Homepage> {
           ),
         ),
         const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
               CustomHomeServices(
                 iconUrl: 'assets/qr_scan_2.png',
                 title: 'Scan any',
@@ -559,6 +584,7 @@ class _HomepageState extends State<Homepage> {
                   Navigator.pushNamed(context, '/QR_Scanner');
                 },
               ),
+              const SizedBox(width: 8),
               CustomHomeServices(
                 iconUrl: 'assets/send_money.png',
                 title: 'Send',
@@ -569,6 +595,18 @@ class _HomepageState extends State<Homepage> {
                   Navigator.pushNamed(context, '/transfer');
                 },
               ),
+              const SizedBox(width: 8),
+              CustomHomeServices(
+                iconUrl: 'assets/img_wallet.png',
+                title: 'Top Up',
+                subtitle: 'Wallet',
+                preferredHeight: 32,
+                preferredWidth: 32,
+                onTap: () {
+                  Navigator.pushNamed(context, '/topup-amount');
+                },
+              ),
+              const SizedBox(width: 8),
               CustomHomeServices(
                 iconUrl: 'assets/self_transfer.png',
                 title: 'Self',
@@ -579,6 +617,7 @@ class _HomepageState extends State<Homepage> {
                   Navigator.pushNamed(context, '/selfTransfer');
                 },
               ),
+              const SizedBox(width: 8),
               CustomHomeServices(
                 iconUrl: 'assets/card_payment.png',
                 title: 'Pay Using',
@@ -587,13 +626,11 @@ class _HomepageState extends State<Homepage> {
                 preferredWidth: 35,
                 onTap: () {
                   Navigator.pushNamed(context, '/cardPayment');
-                  // showDialog(
-                  //     context: context,
-                  //     builder: (context) => const MoreDialog());
                 },
               ),
             ],
           ),
+        ),
         ],
     );
   }
