@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/image_service.dart';
 import 'package:image_picker/image_picker.dart';
 
-class ID_CardUploadPage extends StatefulWidget {
-  const ID_CardUploadPage({super.key});
+class IdCardUploadPage extends StatefulWidget {
+  const IdCardUploadPage({super.key});
 
   @override
-  _ID_CardUploadPageState createState() => _ID_CardUploadPageState();
+  State<IdCardUploadPage> createState() => _IdCardUploadPageState();
 }
 
-class _ID_CardUploadPageState extends State<ID_CardUploadPage> {
+class _IdCardUploadPageState extends State<IdCardUploadPage> {
   XFile? _image;
   Uint8List? _previewBytes;
   final picker = ImagePicker();

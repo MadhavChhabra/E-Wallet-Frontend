@@ -1,7 +1,7 @@
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
-import 'RefreshToken.dart';
+import 'refresh_token.dart';
 
 /// Builds the `Authorization` header for authenticated requests. If the stored
 /// access token is expired it is proactively refreshed. Never logs the token.

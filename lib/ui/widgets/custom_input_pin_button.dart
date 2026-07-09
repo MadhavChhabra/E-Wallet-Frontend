@@ -17,21 +17,12 @@ class CustomInputPinButton extends StatelessWidget {
     return PressScale(
       onTap: onTap,
       scale: 0.92,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
+      child: Container(
         width: 60,
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: numberBackgroundColor,
-          boxShadow: [
-            BoxShadow(
-              color: blackColor.withOpacity(0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Center(
           child: Text(

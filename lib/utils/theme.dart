@@ -12,30 +12,6 @@ Color greenColor = const Color(0xff22B07D);
 Color numberBackgroundColor = const Color(0xff1A1D2E);
 Color lightBackgroundColor = const Color(0xffF6F8FB);
 Color darkBackgroundColor = const Color(0xff020518);
-Color coralColor = const Color(0xffFF6B6B);
-Color amberColor = const Color(0xffFFB020);
-Color tealColor = const Color(0xff14B8A6);
-
-const LinearGradient homeHeaderGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFF5B4BF0), Color(0xFF53C1F9)],
-);
-
-const LinearGradient homeBackgroundGradient = LinearGradient(
-  begin: Alignment.topCenter,
-  end: Alignment.bottomCenter,
-  colors: [
-    Color(0xFFEDE9FF),
-    Color(0xFFF6F8FB),
-    Color(0xFFEAF6FF),
-  ],
-  stops: [0.0, 0.42, 1.0],
-);
-
-const LinearGradient progressGradient = LinearGradient(
-  colors: [Color(0xFF5142E6), Color(0xFF22B07D)],
-);
 
 TextStyle blackTextStyle = GoogleFonts.poppins(
   color: blackColor,

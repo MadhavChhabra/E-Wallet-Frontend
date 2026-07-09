@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:local_auth/local_auth.dart';
 
-import '../../utils/RefreshToken.dart';
+import '../../utils/refresh_token.dart';
 import '../../utils/shared_user.dart';
 
 class SplashPage extends StatefulWidget {
@@ -54,21 +54,19 @@ class _SplashPageState extends State<SplashPage> {
     }
   }
 
-  _checkLoginStatus() async {
-    String? refreshToken = await SharedUser().getRefreshToken();
-    if (refreshToken != null) {
-      _isLoggedIn = true;
-    }
-    if (_isLoggedIn) {
-      bool didAuthenticate = await _authenticateWithBiometrics();
-      if (didAuthenticate) {
-        await RefreshTokenButton.getAccessToken();
+  Future<void> _checkLoginStatus() async {
+    final String? refreshToken = await SharedUser().getRefreshToken();
+    _isLoggedIn = refreshToken != null;
 
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+    if (_isLoggedIn) {
+      final bool didAuthenticate = await _authenticateWithBiometrics();
+      if (!didAuthenticate) return;
+      await RefreshTokenButton.getAccessToken();
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
     } else {
-      Navigator.pushNamedAndRemoveUntil(
-          context, '/onboarding', (route) => false);
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (route) => false);
     }
   }
 

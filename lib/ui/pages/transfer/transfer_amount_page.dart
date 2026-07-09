@@ -68,6 +68,7 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
       final response = await HttpService.postWithAuth(
           '/bank-accounts/transfer', transferData);
 
+      if (!mounted) return;
       if (response['message'] == 'Success') {
         // If successful, navigate to success page
         Navigator.of(context).push(

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ewallet/ui/pages/forgotPassword/changePasswordInternal.dart';
+import 'package:flutter_ewallet/ui/pages/forgotPassword/change_password_internal.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_profile_menu_item.dart';
-import 'package:flutter_ewallet/utils/navigation_utils.dart';
-import 'package:flutter_ewallet/ui/widgets/profile_avatar.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
@@ -11,10 +9,10 @@ import '../../../services/http_service.dart';
 import '../../../services/image_service.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
-  _ProfilePageState createState() => _ProfilePageState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
@@ -63,10 +61,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return WebSafePopScope(
-      child: Scaffold(
+    return Scaffold(
       appBar: AppBar(
-        leading: const AppBackButton(),
         title: const Text(
           'Profile',
         ),
@@ -88,10 +84,34 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             child: Column(
               children: [
-                ProfileAvatar(
-                  image: _image.image,
-                  size: 120,
-                  showBadge: true,
+                Container(
+                  height: 120,
+                  width: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: _image.image,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: whiteColor,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.check_circle,
+                          color: greenColor,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(
                   height: 16,
@@ -130,13 +150,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
                 ProfileMenuItem(
-                  iconUrl: 'assets/img_wallet.png',
-                  title: 'Top Up Wallet',
-                  onTap: () {
-                    Navigator.pushNamed(context, '/topup');
-                  },
-                ),
-                ProfileMenuItem(
                   iconUrl: 'assets/ic_wallet.png',
                   title: 'Add Account',
                   onTap: () {
@@ -158,13 +171,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   iconUrl: 'assets/edit_pic.png',
                   title: 'Edit Profile Image',
                   onTap: () async {
-                    final result = await Navigator.pushNamed(
-                            context, '/profile-image-edit')
-                        .then((value) => setState(() {}));
-                    // if (result == true) {
-                    //   // Reload the UI after editing the profile image
-                    //   setState(() {});
-                    // }
+                    await Navigator.pushNamed(context, '/profile-image-edit');
+                    if (mounted) setState(() {});
                   },
                 ),
                 ProfileMenuItem(
@@ -173,8 +181,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   onTap: () async {
                     final routerPin = Navigator.pushNamed(context, '/pin');
                     if (await routerPin == true) {
-                      String? email = await SharedUser().getEmail();
-
+                      final String? email = await SharedUser().getEmail();
+                      if (!context.mounted) return;
                       Navigator.of(context)
                           .push(MaterialPageRoute(
                               builder: (context) => ChangePasswordInternal(
@@ -183,17 +191,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     }
                   },
                 ),
-                // RefreshTokenButton(),
-                // ProfileMenuItem(
-                //   iconUrl: 'assets/ic_help.png',
-                //   title: 'Add ID Card',
-                //   onTap: () {
-                //     Navigator.of(context)
-                //         .pushNamed('/addIDCard')
-                //         .then((value) => setState(() {}));
-                //     ;
-                //   },
-                // ),
                 ProfileMenuItem(
                   iconUrl: 'assets/ic_logout.png',
                   title: 'Log Out',
@@ -213,7 +210,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-    ),
     );
   }
 }

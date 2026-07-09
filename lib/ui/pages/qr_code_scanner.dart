@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ewallet/utils/navigation_utils.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_page.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class QrScannerScreen extends StatefulWidget {
-  const QrScannerScreen({Key? key}) : super(key: key);
+  const QrScannerScreen({super.key});
 
   @override
-  _QrScannerScreenState createState() => _QrScannerScreenState();
+  State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
@@ -25,8 +24,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WebSafePopScope(
-      child: Scaffold(
+    return Scaffold(
+      
       body: Stack(
         children: [
           QRView(
@@ -108,12 +107,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             iconSize: 28,
 
               color: whiteColor,
-              onPressed: () => popOrHome(context),
+              onPressed: () => Navigator.of(context).pop()
             ),
           ),
         ],
       ),
-    ),
     );
   }
 

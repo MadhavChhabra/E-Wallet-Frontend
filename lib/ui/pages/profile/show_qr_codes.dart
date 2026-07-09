@@ -10,7 +10,7 @@ class QRCodeGenerator extends StatefulWidget {
   const QRCodeGenerator({super.key});
 
   @override
-  _QRCodeGeneratorState createState() => _QRCodeGeneratorState();
+  State<QRCodeGenerator> createState() => _QRCodeGeneratorState();
 }
 
 class _QRCodeGeneratorState extends State<QRCodeGenerator> {
@@ -53,7 +53,8 @@ class _QRCodeGeneratorState extends State<QRCodeGenerator> {
           bankAccountNames = names;
         });
       }
-    } catch (error) {
+    } catch (_) {
+      // Leave the lists empty; the QR page shows nothing to scan.
     }
   }
 
@@ -87,8 +88,9 @@ class _QRCodeGeneratorState extends State<QRCodeGenerator> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
-                username, // Replace 'Username' with actual username
-                style: blackTextStyle, textScaleFactor: 1.5,
+                username,
+                style: blackTextStyle,
+                textScaler: const TextScaler.linear(1.5),
               ),
             ),
           ],
@@ -121,9 +123,12 @@ class _QRCodeGeneratorState extends State<QRCodeGenerator> {
                                 size: 250.0,
                               ),
                             ),
-                            const Text("Scan this QR Code to pay",textScaleFactor: 0.9),
+                            const Text("Scan this QR Code to pay",
+                                textScaler: TextScaler.linear(0.9)),
                             const SizedBox(height: 20,),
-                            Text(bankAccountNames[index].toUpperCase(),style: blackTextStyle,textScaleFactor: 1.1),
+                            Text(bankAccountNames[index].toUpperCase(),
+                                style: blackTextStyle,
+                                textScaler: const TextScaler.linear(1.1)),
                             const SizedBox(
                               height: 10,
                             ),

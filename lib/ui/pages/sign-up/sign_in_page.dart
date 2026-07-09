@@ -22,6 +22,14 @@ class _SignInPageState extends State<SignInPage> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
   bool _demoLoading = false;
+  bool _signingIn = false;
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   /// One-click demo: provisions a pre-populated account server-side and lands
   /// the visitor on a filled dashboard.
@@ -67,9 +75,18 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Future<void> signIn() async {
-    final url = '${ApiConfig.baseUrl}/auth/login';
+    if (_signingIn) return;
+
     final username = usernameController.text.trim();
     final password = passwordController.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      _showError('Please enter both your username and password.');
+      return;
+    }
+
+    setState(() => _signingIn = true);
+    final url = '${ApiConfig.baseUrl}/auth/login';
 
     try {
       final response = await http.post(
@@ -82,43 +99,50 @@ class _SignInPageState extends State<SignInPage> {
       );
 
       if (response.statusCode == 200) {
-        SharedUser().updateLoggedInState(true);
         final responseData = jsonDecode(response.body);
         final data = responseData['data'];
         final token = data['token'];
         final refreshToken = data['refreshToken'];
 
         if (token != null && token.isNotEmpty) {
-          SharedUser().writeToStorage('token', token);
-          SharedUser().writeToStorage('refreshToken', refreshToken);
-          SharedUser().writeToStorage('user', jsonEncode(data));
+          await SharedUser().updateLoggedInState(true);
+          await SharedUser().writeToStorage('token', token);
+          await SharedUser().writeToStorage('refreshToken', refreshToken);
+          await SharedUser().writeToStorage('user', jsonEncode(data));
+          SharedUser().clearCachedUser();
         }
 
+        if (!mounted) return;
         showTopSnackBar(
           Overlay.of(context),
           snackBarPosition: SnackBarPosition.bottom,
           dismissType: DismissType.onSwipe,
-          dismissDirection: [DismissDirection.horizontal],
-          const CustomSnackBar.success(
-            message: 'Log In Successful!',
-          ),
+          dismissDirection: const [DismissDirection.horizontal],
+          const CustomSnackBar.success(message: 'Log In Successful!'),
         );
 
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } else {
-        showTopSnackBar(
-          Overlay.of(context),
-          snackBarPosition: SnackBarPosition.bottom,
-          dismissType: DismissType.onSwipe,
-          dismissDirection: [DismissDirection.horizontal],
-          const CustomSnackBar.error(
-            message:
-                'Something went wrong. Please check your credentials and try again',
-          ),
-        );
+        _showError(
+            'Something went wrong. Please check your credentials and try again.');
       }
-    } catch (e) {
+    } catch (_) {
+      _showError(
+          'Could not reach the server. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
     }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    showTopSnackBar(
+      Overlay.of(context),
+      snackBarPosition: SnackBarPosition.bottom,
+      dismissType: DismissType.onSwipe,
+      dismissDirection: const [DismissDirection.horizontal],
+      CustomSnackBar.error(message: message),
+    );
   }
 
   @override
@@ -191,10 +215,24 @@ class _SignInPageState extends State<SignInPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  CustomFilledButton(
-                    title: 'Sign In',
-                    onPressed: signIn,
-                  ),
+                  _signingIn
+                      ? SizedBox(
+                          height: 52,
+                          child: Center(
+                            child: SizedBox(
+                              width: 26,
+                              height: 26,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: purpleColor,
+                              ),
+                            ),
+                          ),
+                        )
+                      : CustomFilledButton(
+                          title: 'Sign In',
+                          onPressed: signIn,
+                        ),
                   const SizedBox(height: 14),
                   _demoLoading
                       ? const Padding(

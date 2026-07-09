@@ -5,15 +5,14 @@ import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
 
-import '../../../utils/navigation_utils.dart';
 import '../../../utils/shared_user.dart';
 import '../../models/user_model.dart';
 
 class SelfTransferPage extends StatefulWidget {
-  const SelfTransferPage({Key? key}) : super(key: key);
+  const SelfTransferPage({super.key});
 
   @override
-  _SelfTransferPageState createState() => _SelfTransferPageState();
+  State<SelfTransferPage> createState() => _SelfTransferPageState();
 }
 
 class _SelfTransferPageState extends State<SelfTransferPage> {
@@ -50,7 +49,8 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
           fromBankAccountIbans = ibans;
         });
       }
-    } catch (error) {
+    } catch (_) {
+      // Leave the account list empty; the UI shows the error state.
     }
   }
 
@@ -66,10 +66,8 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WebSafePopScope(
-      child: Scaffold(
+    return Scaffold(
       appBar: AppBar(
-        leading: const AppBackButton(),
         title: const Text('Transfer'),
       ),
       body: ListView(
@@ -128,26 +126,22 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
           CustomFilledButton(
             title: 'Continue',
             onPressed: () async {
-
-                      
-
               // Navigate to transfer-amount route with IBAN and description data
               if (selectedFromIban != null) {
                 final routerPin = Navigator.pushNamed(context, '/pin');
-                      if (await routerPin == true) {
-                        // ignore: use_build_context_synchronously
-                         Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TransferAmountPage(
-                      fromIban: selectedFromIban!,
-                      toIban: toIbanController.text,
-                      description: descriptionController.text,
+                if (await routerPin == true) {
+                  if (!context.mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TransferAmountPage(
+                        fromIban: selectedFromIban!,
+                        toIban: toIbanController.text,
+                        description: descriptionController.text,
+                      ),
                     ),
-                  ),
-                );
-                      }
-               
+                  );
+                }
               } else {
                 // Handle case when no IBAN is selected
                 showDialog(
@@ -171,46 +165,6 @@ class _SelfTransferPageState extends State<SelfTransferPage> {
           ),
         ],
       ),
-    ),
     );
   }
-
-//   Widget buildResult() {
-//     return Container(
-//       margin: const EdgeInsets.only(top: 40),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(
-//             'Result',
-//             style: blackTextStyle.copyWith(
-//               fontWeight: semiBold,
-//             ),
-//           ),
-//           const SizedBox(
-//             height: 14,
-//           ),
-//           const Wrap(
-//             spacing: 17,
-//             runSpacing: 17,
-//             children: [
-//               CustomTransferResultItem(
-//                 imageUrl: 'assets/img_friend1.png',
-//                 name: 'Yoona Jie',
-//                 username: '@yoenna',
-//                 isVerified: true,
-//               ),
-//               CustomTransferResultItem(
-//                 imageUrl: 'assets/img_friend2.png',
-//                 name: 'Elenna Jie',
-//                 username: '@elenna',
-//                 isVerified: true,
-//                 isSelected: true,
-//               ),
-//             ],
-//           ),
-//         ],
-//       ),
-//     );
-//   }
 }

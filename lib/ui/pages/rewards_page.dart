@@ -24,7 +24,7 @@ class RewardsPage extends StatelessWidget {
               style: greyTextStyle.copyWith(fontSize: 14, height: 1.4),
             ),
             const SizedBox(height: 24),
-            _RewardHeroCard(
+            const _RewardHeroCard(
               title: 'Level progress',
               subtitle: 'Keep transacting to unlock higher tiers.',
               progress: 0.42,

@@ -2,9 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_credit_card/flutter_credit_card.dart';
 
-import '../../../models/user_model.dart';
 import '../../../services/http_service.dart';
-import '../../../utils/shared_user.dart';
 
 const double kCardHeight = 225;
 const double kCardWidth = 356;
@@ -39,11 +37,6 @@ class _SelectCardState extends State<SelectCard> {
   }
 
   void _fetchDataFromUrl() async {
- int? userId;
-      final UserModel? user = await SharedUser().getCurrentUser();
-      if (user != null) {
-        userId = user.id;
-      }
     try {
       final response =
           await HttpService.getWithAuth('/cards');
@@ -68,7 +61,8 @@ class _SelectCardState extends State<SelectCard> {
       } else {
         throw Exception('Failed to load data');
       }
-    } catch (e) {
+    } catch (_) {
+      // Leave the card list empty; the UI shows the empty state.
     }
   }
 

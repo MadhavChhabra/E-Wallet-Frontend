@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/ui/pages/ID_Card/add_id_card.dart';
-import 'package:flutter_ewallet/ui/pages/Navigation.dart';
-import 'package:flutter_ewallet/ui/pages/QR_code_scanner.dart';
+import 'package:flutter_ewallet/ui/pages/navigation.dart';
+import 'package:flutter_ewallet/ui/pages/qr_code_scanner.dart';
 import 'package:flutter_ewallet/ui/pages/card/add_card_page.dart';
 import 'package:flutter_ewallet/ui/pages/card/pick_a_card.dart';
 import 'package:flutter_ewallet/ui/pages/card_payment_form.dart';
@@ -74,7 +74,7 @@ class MyApp extends StatelessWidget {
         '/addAccount': (context) => const AddAccountPage(),
         '/addCard': (context) => const AddCardPage(),
         '/selectCard': (context) =>  const SelectCard(),
-        '/addIDCard': (context) => const ID_CardUploadPage(),
+        '/addIDCard': (context) => const IdCardUploadPage(),
         '/transactionHistory': (context) => const TransactionHistoryPage(),
         '/showAccountQR': (context) => const QRCodeGenerator(),
         '/QR_Scanner': (context) => const QrScannerScreen(),

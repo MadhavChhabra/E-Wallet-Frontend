@@ -7,7 +7,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
 class EditProfilePinPage extends StatelessWidget {
-  const EditProfilePinPage({Key? key}) : super(key: key);
+  const EditProfilePinPage({super.key});
 
   Future<String> getPin() async {
     String? pin = await SharedUser().getSecurityPin();
@@ -68,9 +68,11 @@ class EditProfilePinPage extends StatelessWidget {
                     CustomFilledButton(
                       title: 'Update Now',
                       onPressed: () async {
-                        if (oldPinController.text == await getPin()) {
-                          final String newPin = newPinController.text;
-                          SharedUser().setSecurityPin(newPin);
+                        final expected = await getPin();
+                        if (!context.mounted) return;
+                        if (oldPinController.text == expected) {
+                          await SharedUser().setSecurityPin(newPinController.text);
+                          if (!context.mounted) return;
                           Navigator.pushNamedAndRemoveUntil(context,
                               '/profile-edit-success', (route) => false);
                         } else {

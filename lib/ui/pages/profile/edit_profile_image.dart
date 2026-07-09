@@ -4,10 +4,10 @@ import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:image_picker/image_picker.dart';
 
 class EditProfileImagePage extends StatefulWidget {
-  const EditProfileImagePage({Key? key}) : super(key: key);
+  const EditProfileImagePage({super.key});
 
   @override
-  _EditProfileImagePageState createState() => _EditProfileImagePageState();
+  State<EditProfileImagePage> createState() => _EditProfileImagePageState();
 }
 
 class _EditProfileImagePageState extends State<EditProfileImagePage> {

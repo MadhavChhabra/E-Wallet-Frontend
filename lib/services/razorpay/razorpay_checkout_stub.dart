@@ -1,5 +1,4 @@
 import 'razorpay_checkout.dart';
-import 'razorpay_models.dart';
 
 /// Fallback used on platforms without a Checkout implementation.
 class _StubCheckout implements RazorpayCheckout {

@@ -8,30 +8,26 @@ class WebPhoneShell extends StatelessWidget {
 
   final Widget child;
 
-  /// Standard mobile aspect ratio (width : height). Slightly taller for long phones.
-  static const double _aspectRatio = 9 / 20;
+  /// Standard mobile aspect ratio (width : height).
+  static const double _aspectRatio = 9 / 19.5;
   static const double _minWidth = 360;
   static const double _maxWidth = 414;
   static const double _wideBreakpoint = 520;
-  static const double _tallPhoneRatio = 2.05;
 
   static _PhoneDimensions _dimensions(BoxConstraints constraints) {
     if (constraints.maxWidth <= _wideBreakpoint) {
-      final isTallPhone =
-          constraints.maxHeight / constraints.maxWidth > _tallPhoneRatio;
       return _PhoneDimensions(
         width: constraints.maxWidth,
         height: constraints.maxHeight,
         scale: 1,
         showFrame: false,
-        isTallPhone: isTallPhone,
       );
     }
 
     final isLargeDesktop = constraints.maxWidth >= 1200;
     final headerBlock = isLargeDesktop ? 0.0 : 72.0;
     final horizontalPad = isLargeDesktop ? 64.0 : 32.0;
-    final verticalPad = 28.0;
+    const verticalPad = 28.0;
 
     final maxW = constraints.maxWidth - horizontalPad * 2;
     final maxH = constraints.maxHeight - verticalPad * 2 - headerBlock;
@@ -61,7 +57,6 @@ class WebPhoneShell extends StatelessWidget {
       scale: scale.clamp(0.72, 1.0),
       showFrame: true,
       isLargeDesktop: isLargeDesktop,
-      isTallPhone: height / width > _tallPhoneRatio,
     );
   }
 
@@ -164,7 +159,6 @@ class _PhoneDimensions {
     required this.scale,
     required this.showFrame,
     this.isLargeDesktop = false,
-    this.isTallPhone = false,
   });
 
   final double width;
@@ -172,7 +166,6 @@ class _PhoneDimensions {
   final double scale;
   final bool showFrame;
   final bool isLargeDesktop;
-  final bool isTallPhone;
 }
 
 class _PhoneFrame extends StatelessWidget {
@@ -216,10 +209,8 @@ class _PhoneFrame extends StatelessWidget {
             MediaQuery(
               data: MediaQuery.of(context).copyWith(
                 size: Size(dims.width, dims.height),
-                padding: EdgeInsets.only(
-                  top: dims.isTallPhone ? 4 * dims.scale : 8 * dims.scale,
-                ),
-                textScaler: TextScaler.linear(1.0),
+                padding: EdgeInsets.only(top: 10 * dims.scale),
+                textScaler: const TextScaler.linear(1.0),
               ),
               child: SizedBox(
                 width: dims.width,
@@ -297,9 +288,9 @@ class _DesktopSidePanel extends StatelessWidget {
           style: greyTextStyle.copyWith(fontSize: 14, height: 1.5),
         ),
         SizedBox(height: 24 * scale),
-        _SideFeature(icon: Icons.bolt_outlined, label: 'One-click demo account'),
-        _SideFeature(icon: Icons.security_outlined, label: 'JWT-secured API'),
-        _SideFeature(icon: Icons.payments_outlined, label: 'Razorpay test checkout'),
+        const _SideFeature(icon: Icons.bolt_outlined, label: 'One-click demo account'),
+        const _SideFeature(icon: Icons.security_outlined, label: 'JWT-secured API'),
+        const _SideFeature(icon: Icons.payments_outlined, label: 'Razorpay test checkout'),
       ],
     );
   }

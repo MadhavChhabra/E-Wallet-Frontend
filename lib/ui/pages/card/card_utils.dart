@@ -1,3 +1,5 @@
+// Card-network names are proper nouns kept in their conventional casing.
+// ignore_for_file: constant_identifier_names
 enum CardType {
   Master,
   Visa,

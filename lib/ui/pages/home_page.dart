@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/models/user_model.dart';
-import 'package:flutter_ewallet/ui/pages/card/pick_a_card.dart';
-import 'package:flutter_ewallet/ui/pages/transaction_history.dart';
 import 'package:flutter_ewallet/ui/widgets/notifications_sheet.dart';
 import 'package:flutter_ewallet/ui/widgets/animated_entrance.dart';
-import 'package:flutter_ewallet/ui/widgets/profile_avatar.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_home_services.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_latest_transaction_item.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_user.dart';
@@ -110,10 +107,10 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
 }
 
 class AccountsWidget extends StatefulWidget {
-  const AccountsWidget({Key? key}) : super(key: key);
+  const AccountsWidget({super.key});
 
   @override
-  _AccountsWidgetState createState() => _AccountsWidgetState();
+  State<AccountsWidget> createState() => _AccountsWidgetState();
 }
 
 class _AccountsWidgetState extends State<AccountsWidget> {
@@ -183,7 +180,6 @@ class _AccountsWidgetState extends State<AccountsWidget> {
                   height: 230,
                   child: PageView.builder(
                     controller: _pageController,
-                    physics: const BouncingScrollPhysics(),
                     itemCount: data.length,
                     itemBuilder: (context, index) {
                       final bankAccount = data[index];
@@ -324,10 +320,10 @@ class _SendAgainWidgetState extends State<SendAgainWidget> {
 }
 
 class Homepage extends StatefulWidget {
-  const Homepage({Key? key}) : super(key: key);
+  const Homepage({super.key});
 
   @override
-  _HomepageState createState() => _HomepageState();
+  State<Homepage> createState() => _HomepageState();
 }
 
 class _HomepageState extends State<Homepage> {
@@ -341,11 +337,11 @@ class _HomepageState extends State<Homepage> {
   String name = 'user';
   Image _profileImage = SharedUser().getProfileImage();
   String lastname = '';
-  double ProgressSpent = 0;
+  double progressSpent = 0;
 
   void updateProgressSpent(double newValue) {
     setState(() {
-      ProgressSpent = newValue;
+      progressSpent = newValue;
     });
   }
 
@@ -366,26 +362,6 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  // void fetchEmail() async {
-  //   final UserModel? user = await SharedUser().getCurrentUser();
-  //   if (user != null) {
-  //     print('User is not null');
-  //     int? id = user.id;
-
-  //     if (id != null) {
-  //       print('User id not null');
-
-  //       final response = await HttpService.getWithAuth(
-  //           "${SharedValues.baseUrl}/auth/email/$id");
-  //       print("${SharedValues.baseUrl}/auth/email/$id");
-  //       SharedUser().writeToStorage('email', response['message']);
-  //       print(response.toString());
-  //     } else {
-  //       print('USER ID NULL EMAIL');
-  //     }
-  //   }
-  // }
-
   Future<void> _fetchProfileImage() async {
     try {
       final url = await ImageService.currentProfileImageUrl();
@@ -399,26 +375,11 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  // Future<void> _fetchArticles() async {
-  //   try {
-  //     final articles =
-  //         await _newsApiService.fetchTopHeadlines(category: 'business');
-  //     print("AYYYOOOOOOOOOOO" + articles.isEmpty.toString());
-  //     setState(() {
-  //       _articles = articles;
-  //     });
-  //   } catch (e) {
-  //     print(e);
-  //   }
-  // }
-
   @override
   void initState() {
     super.initState();
     fetchData();
     _fetchProfileImage();
-    // fetchEmail();"${SharedValues.baseUrl}/auth/email/$id"
-    // _fetchArticles();
   }
 
   Future<void> _handleRefresh() async {
@@ -434,51 +395,39 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _handleRefresh,
-      color: purpleColor,
-      child: Container(
-        decoration: const BoxDecoration(gradient: homeBackgroundGradient),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SafeArea(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AnimatedEntrance(
-                  child: _HomeHeaderCard(
-                    child: buildProfileSection(context),
+                  child: buildProfileSection(context),
+                ),
+                AnimatedEntrance(
+                  delay: const Duration(milliseconds: 70),
+                  child: AccountsWidget(key: _accountsListKey),
+                ),
+                AnimatedEntrance(
+                  delay: const Duration(milliseconds: 120),
+                  child: buildProgressLevel(),
+                ),
+                AnimatedEntrance(
+                  delay: const Duration(milliseconds: 170),
+                  child: buildServices(context),
+                ),
+                AnimatedEntrance(
+                  delay: const Duration(milliseconds: 220),
+                  child: TransactionListWidget(
+                    key: _transactionListKey,
+                    callback: updateProgressSpent,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AnimatedEntrance(
-                        delay: const Duration(milliseconds: 70),
-                        child: AccountsWidget(key: _accountsListKey),
-                      ),
-                      AnimatedEntrance(
-                        delay: const Duration(milliseconds: 120),
-                        child: buildProgressLevel(),
-                      ),
-                      AnimatedEntrance(
-                        delay: const Duration(milliseconds: 170),
-                        child: buildServices(context),
-                      ),
-                      AnimatedEntrance(
-                        delay: const Duration(milliseconds: 220),
-                        child: TransactionListWidget(
-                          key: _transactionListKey,
-                          callback: updateProgressSpent,
-                        ),
-                      ),
-                      AnimatedEntrance(
-                        delay: const Duration(milliseconds: 270),
-                        child: SendAgainWidget(key: _sendAgainKey),
-                      ),
-                      const SizedBox(height: 96),
-                    ],
-                  ),
+                AnimatedEntrance(
+                  delay: const Duration(milliseconds: 270),
+                  child: SendAgainWidget(key: _sendAgainKey),
                 ),
               ],
             ),
@@ -489,7 +438,7 @@ class _HomepageState extends State<Homepage> {
   }
 
   Widget buildProgressLevel() {
-    final totalSpent = ProgressSpent;
+    final totalSpent = progressSpent;
     final level = (totalSpent ~/ 10000) + 1;
     final levelCap = level * 10000;
     final progress = (totalSpent / levelCap).clamp(0.0, 1.0);
@@ -520,106 +469,12 @@ class _HomepageState extends State<Homepage> {
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
-            child: SizedBox(
-              height: 8,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(color: lightBackgroundColor),
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress,
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(gradient: progressGradient),
-                    ),
-                  ),
-                ],
-              ),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: progress,
+              color: greenColor,
+              backgroundColor: lightBackgroundColor,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  BottomAppBar customBottomAppBar() {
-    return BottomAppBar(
-      elevation: 0,
-      color: whiteColor,
-      shape: const CircularNotchedRectangle(),
-      clipBehavior: Clip.antiAlias,
-      notchMargin: 6,
-      child: BottomNavigationBar(
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        onTap: (int index) {
-          if (index != 0) {
-            // Navigate to respective pages for indexes other than 0 (Home)
-            switch (index) {
-              case 2:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SelectCard()),
-                );
-                break;
-              case 1:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const TransactionHistoryPage()),
-                );
-                break;
-              case 3:
-                // or reward
-                break;
-              default:
-                break;
-            }
-          }
-        },
-        backgroundColor: whiteColor,
-        selectedItemColor: blueColor,
-        unselectedItemColor: blackColor,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        selectedLabelStyle: blueTextStyle.copyWith(
-          fontSize: 10,
-          fontWeight: medium,
-        ),
-        unselectedLabelStyle: blackTextStyle.copyWith(
-          fontSize: 10,
-          fontWeight: medium,
-        ),
-        items: [
-          BottomNavigationBarItem(
-            icon: Image.asset(
-              'assets/ic_overview.png',
-              width: 20,
-              color: blueColor,
-            ),
-            label: 'Overview',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset(
-              'assets/ic_history.png',
-              width: 20,
-            ),
-            label: 'History',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.credit_card_rounded),
-            //  Image.asset(
-            //   'assets/ic_statistic.png',
-            //   width: 20,
-            // ),
-            label: 'Cards',
-          ),
-          BottomNavigationBarItem(
-            icon: Image.asset(
-              'assets/ic_reward.png',
-              width: 20,
-            ),
-            label: 'Reward',
           ),
         ],
       ),
@@ -636,7 +491,6 @@ class _HomepageState extends State<Homepage> {
           style: blackTextStyle.copyWith(
             fontSize: 17,
             fontWeight: semiBold,
-            color: purpleColor.withOpacity(0.92),
           ),
         ),
         const SizedBox(height: 14),
@@ -649,7 +503,6 @@ class _HomepageState extends State<Homepage> {
                 subtitle: 'QR Code',
                 preferredHeight: 40,
                 preferredWidth: 40,
-                tileGradient: [purpleColor.withOpacity(0.18), purpleColor.withOpacity(0.06)],
                 onTap: () {
                   Navigator.pushNamed(context, '/QR_Scanner');
                 },
@@ -660,7 +513,6 @@ class _HomepageState extends State<Homepage> {
                 subtitle: 'Money',
                 preferredHeight: 50,
                 preferredWidth: 50,
-                tileGradient: [blueColor.withOpacity(0.22), blueColor.withOpacity(0.08)],
                 onTap: () {
                   Navigator.pushNamed(context, '/transfer');
                 },
@@ -671,20 +523,21 @@ class _HomepageState extends State<Homepage> {
                 subtitle: 'Transfer',
                 preferredHeight: 32,
                 preferredWidth: 32,
-                tileGradient: [tealColor.withOpacity(0.22), tealColor.withOpacity(0.08)],
                 onTap: () {
                   Navigator.pushNamed(context, '/selfTransfer');
                 },
               ),
               CustomHomeServices(
-                iconUrl: 'assets/img_wallet.png',
-                title: 'Top Up',
-                subtitle: 'Wallet',
-                preferredHeight: 30,
-                preferredWidth: 30,
-                tileGradient: [amberColor.withOpacity(0.24), coralColor.withOpacity(0.10)],
+                iconUrl: 'assets/card_payment.png',
+                title: 'Pay Using',
+                subtitle: 'Card',
+                preferredHeight: 35,
+                preferredWidth: 35,
                 onTap: () {
-                  Navigator.pushNamed(context, '/topup');
+                  Navigator.pushNamed(context, '/cardPayment');
+                  // showDialog(
+                  //     context: context,
+                  //     builder: (context) => const MoreDialog());
                 },
               ),
             ],
@@ -693,61 +546,9 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Widget buildCardBank() {
-    return Container(
-      margin: const EdgeInsets.only(top: 30),
-      padding: const EdgeInsets.all(30),
-      width: double.infinity,
-      height: 220,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        image: const DecorationImage(
-          fit: BoxFit.cover,
-          image: AssetImage(
-            'assets/img_bg_card.png',
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$name $lastname',
-            style: whiteTextStyle.copyWith(
-              fontSize: 18,
-              fontWeight: medium,
-            ),
-          ),
-          const SizedBox(
-            height: 28,
-          ),
-          Text(
-            '****  ****  ****  1234',
-            style: whiteTextStyle.copyWith(
-              fontSize: 18,
-              fontWeight: medium,
-              letterSpacing: 4,
-            ),
-          ),
-          const SizedBox(
-            height: 20,
-          ),
-          Text('Balance', style: whiteTextStyle),
-          Text(
-            formatCurrency(12500),
-            style: whiteTextStyle.copyWith(
-              fontSize: 24,
-              fontWeight: semiBold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget buildProfileSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -758,15 +559,12 @@ class _HomepageState extends State<Homepage> {
               children: [
                 Text(
                   'Hello',
-                  style: whiteTextStyle.copyWith(
-                    fontSize: 15,
-                    color: whiteColor.withOpacity(0.82),
-                  ),
+                  style: greyTextStyle.copyWith(fontSize: 15),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   name,
-                  style: whiteTextStyle.copyWith(
+                  style: blackTextStyle.copyWith(
                     fontSize: 22,
                     fontWeight: semiBold,
                   ),
@@ -778,7 +576,7 @@ class _HomepageState extends State<Homepage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Material(
-                color: whiteColor.withOpacity(0.16),
+                color: whiteColor,
                 shape: const CircleBorder(),
                 elevation: 0,
                 child: InkWell(
@@ -789,7 +587,7 @@ class _HomepageState extends State<Homepage> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        Icon(Icons.notifications_outlined, color: whiteColor),
+                        Icon(Icons.notifications_outlined, color: blackColor),
                         Positioned(
                           right: -1,
                           top: -1,
@@ -809,10 +607,22 @@ class _HomepageState extends State<Homepage> {
                 ),
               ),
               const SizedBox(width: 10),
-              ProfileAvatar(
-                image: _profileImage.image,
-                size: 48,
-                onTap: () => Navigator.pushNamed(context, '/profile'),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/profile');
+                },
+                child: Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: purpleColor.withOpacity(0.25), width: 2),
+                    image: DecorationImage(
+                      image: _profileImage.image,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -821,101 +631,3 @@ class _HomepageState extends State<Homepage> {
     );
   }
 }
-
-class _HomeHeaderCard extends StatelessWidget {
-  const _HomeHeaderCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
-      decoration: BoxDecoration(
-        gradient: homeHeaderGradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: purpleColor.withOpacity(0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-// class MoreDialog extends StatelessWidget {
-//   const MoreDialog({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return AlertDialog(
-//       backgroundColor: Colors.transparent,
-//       insetPadding: EdgeInsets.zero,
-//       alignment: Alignment.bottomCenter,
-//       content: Container(
-//         height: 326,
-//         width: MediaQuery.of(context).size.width,
-//         padding: const EdgeInsets.all(30),
-//         decoration: BoxDecoration(
-//           color: lightBackgroundColor,
-//           borderRadius: BorderRadius.circular(40),
-//         ),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Text(
-//               "Do More With Us",
-//               style: blackTextStyle.copyWith(
-//                 fontSize: 16,
-//                 fontWeight: semiBold,
-//               ),
-//             ),
-//             const SizedBox(
-//               height: 13,
-//             ),
-//             Wrap(
-//               spacing: 29,
-//               runSpacing: 25,
-//               children: [
-//                 CustomHomeServices(
-//                   iconUrl: 'assets/ic_product_data.png',
-//                   title: 'Data',
-//                   onTap: () {
-//                     Navigator.pushNamed(context, '/data-provider');
-//                   },
-//                 ),
-//                 const CustomHomeServices(
-//                   iconUrl: 'assets/ic_product_water.png',
-//                   title: 'Water',
-//                 ),
-//                 const CustomHomeServices(
-//                   iconUrl: 'assets/ic_product_stream.png',
-//                   title: 'Stream',
-//                 ),
-//                 const CustomHomeServices(
-//                   iconUrl: 'assets/ic_product_movie.png',
-//                   title: 'Movie',
-//                 ),
-//                 const CustomHomeServices(
-//                   iconUrl: 'assets/ic_product_food.png',
-//                   title: 'Food',
-//                 ),
-//                 const CustomHomeServices(
-//                   iconUrl: 'assets/ic_product_travel.png',
-//                   title: 'Travel',
-//                 ),
-//               ],
-//             )
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// }

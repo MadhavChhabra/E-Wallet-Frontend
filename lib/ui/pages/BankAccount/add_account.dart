@@ -8,10 +8,10 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../../../models/user_model.dart';
 
 class AddAccountPage extends StatefulWidget {
-  const AddAccountPage({Key? key}) : super(key: key);
+  const AddAccountPage({super.key});
 
   @override
-  _AddAccountPageState createState() => _AddAccountPageState();
+  State<AddAccountPage> createState() => _AddAccountPageState();
 }
 
 class _AddAccountPageState extends State<AddAccountPage> {
@@ -46,26 +46,15 @@ class _AddAccountPageState extends State<AddAccountPage> {
       try {
         var response = await HttpService.postWithAuth('/bank-accounts', bankaccountData);
         if (response['message'] == 'Success') {
-
-                                                          Fluttertoast.showToast(msg: 'Account created successfully!');
-
-
-          Navigator.of(context).pop((route) => false);
+          Fluttertoast.showToast(msg: 'Account created successfully!');
+          if (!mounted) return;
+          Navigator.of(context).pop();
         }
-
-        // print('doing it');
-
-        // Handle response accordingly
-      } catch (e) {
-                                                          Fluttertoast.showToast(msg: 'Error Occured');
-
-
-        // Handle error
+      } catch (_) {
+        Fluttertoast.showToast(msg: 'An error occurred. Please try again.');
       }
     } else {
-      // Show error message if validation fails
-                                                          Fluttertoast.showToast(msg: 'Please Fill in all the fields');
-
+      Fluttertoast.showToast(msg: 'Please fill in all the fields');
     }
   }
 

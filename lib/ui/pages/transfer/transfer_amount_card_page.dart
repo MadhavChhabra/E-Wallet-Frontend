@@ -4,28 +4,23 @@ import 'package:flutter_ewallet/services/payment_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/loading_card.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_input_pin_button.dart';
-import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
-
-import '../../../models/user_model.dart';
 
 class TransferCardAmountPage extends StatefulWidget {
   final String cardNumber;
   final String expiryDate;
-  final String CardHolderName;
-  final String CVV;
+  final String cardHolderName;
+  final String cvv;
   final String toIban;
-  // final String description;
 
   const TransferCardAmountPage({
-    Key? key,
+    super.key,
     required this.toIban,
     required this.cardNumber,
     required this.expiryDate,
-    required this.CardHolderName,
-    required this.CVV,
-    // required this.description,
-  }) : super(key: key);
+    required this.cardHolderName,
+    required this.cvv,
+  });
 
   @override
   State<TransferCardAmountPage> createState() => _TransferCardAmountPageState();
@@ -58,19 +53,14 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
   }
 
   Future<void> sendTransferData(
-    String CardHolderName,
+    String cardHolderName,
     String toIban,
     String amount,
     String description,
-    String CVV,
-    String CardNumber,
-    String Expiry,
+    String cvv,
+    String cardNumber,
+    String expiry,
   ) async {
-    int? userId;
-    final UserModel? user = await SharedUser().getCurrentUser();
-    if (user != null) {
-      userId = user.id;
-    }
     // The backend models money movement as wallet-to-wallet transfers by IBAN.
     // A "card payment" here is settled from the user's primary wallet to the
     // recipient IBAN; the entered card is a UI affordance only.
@@ -113,7 +103,7 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
     }
   }
 
-  addAmount(String number) {
+  void addAmount(String number) {
     if (amountController.text == '0') {
       amountController.text = '';
     }
@@ -122,7 +112,7 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
     });
   }
 
-  deleteAmount() {
+  void deleteAmount() {
     if (amountController.text.isNotEmpty) {
       setState(() {
         amountController.text = amountController.text
@@ -283,11 +273,11 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
               title: 'Checkout Now',
               onPressed: () async {
                 await sendTransferData(
-                    widget.CardHolderName,
+                    widget.cardHolderName,
                     widget.toIban,
                     amountController.text,
                     "Card Transfer",
-                    widget.CVV,
+                    widget.cvv,
                     widget.cardNumber,
                     widget.expiryDate);
               },
@@ -307,13 +297,4 @@ class _TransferCardAmountPageState extends State<TransferCardAmountPage> {
       ),
     );
   }
-
-  // final Uri _url = Uri.parse('https://demo.midtrans.com/');
-
-  // Future<void> _launchUrl() async {
-  //   if (await Navigator.pushNamed(context, '/pin') == true) {
-  //     Navigator.pushNamedAndRemoveUntil(
-  //         context, '/transfer-success', (route) => false);
-  //   }
-  // }
 }

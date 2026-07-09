@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/models/user_model.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
@@ -10,6 +11,24 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/http_service.dart';
+
+/// Shared Google Sign-In client.
+///
+/// On the web, google_sign_in reads the OAuth client id from the
+/// `google-signin-client_id` meta tag in `web/index.html` and *asserts* that
+/// `clientId`/`serverClientId` are not passed programmatically — so we only set
+/// them on mobile. The backend accepts the resulting id-token because its
+/// audience (the web/server client id `...vp394`) is configured via
+/// GOOGLE_CLIENT_ID.
+final GoogleSignIn googleSignIn = GoogleSignIn(
+  scopes: const ['email', 'profile'],
+  clientId: kIsWeb
+      ? null
+      : '551536244051-1jldt8r1f1iov8aoagt1jsc1090mmuha.apps.googleusercontent.com',
+  serverClientId: kIsWeb
+      ? null
+      : '551536244051-0vfk355lgs5oub30a5b7q4jcregvp394.apps.googleusercontent.com',
+);
 
 class SharedUser {
   static final SharedUser _singleton = SharedUser._internal();
@@ -183,16 +202,20 @@ class SharedUser {
   }
 
   static Future<void> logout() async {
+    // Sign out of Google separately: failure here (e.g. the user never used
+    // Google, or the plugin is unavailable) must not block clearing our session.
     try {
-      // await storage.delete(key: 'token');
-      // await storage.delete(key: 'user');
-      _GoogleSignInButtonState().handleSignOut();
+      await googleSignIn.signOut();
+    } catch (_) {
+      // Ignore — not signed in via Google.
+    }
+    try {
       await _storage.deleteAll();
       _singleton.clearCachedUser();
-      // Update logged-in state
       _singleton._isLoggedIn = false;
       await _storage.write(key: _loggedInKey, value: 'false');
-    } catch (e) {
+    } catch (_) {
+      // Best-effort logout; storage may already be cleared.
     }
   }
 
@@ -209,152 +232,111 @@ class SharedUser {
         final accountId = await _storage.read(key: key);
         accountIds.add(accountId!);
       }
-    } catch (e) {
+    } catch (_) {
+      // Return whatever we managed to read.
     }
     return accountIds;
   }
 }
 
 class GoogleSignInButton extends StatefulWidget {
-  const GoogleSignInButton({Key? key}) : super(key: key);
+  const GoogleSignInButton({super.key});
 
   @override
   State<GoogleSignInButton> createState() => _GoogleSignInButtonState();
 }
 
 class _GoogleSignInButtonState extends State<GoogleSignInButton> {
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [
-      'email',
-      'profile',
-      // 'openid'
-      // 'https://www.googleapis.com/auth/contacts.readonly'
-      // Add any other scopes your application requires
-    ],
-    // clientId: "551536244051-0vfk355lgs5oub30a5b7q4jcregvp394.apps.googleusercontent.com",
-    clientId:
-        "551536244051-1jldt8r1f1iov8aoagt1jsc1090mmuha.apps.googleusercontent.com",
-    serverClientId:
-        "551536244051-0vfk355lgs5oub30a5b7q4jcregvp394.apps.googleusercontent.com",
-  );
   bool _isSigningIn = false;
 
   Future<void> _handleSignIn() async {
+    if (_isSigningIn) return;
     setState(() => _isSigningIn = true);
 
     try {
-      final GoogleSignInAccount? account = _googleSignIn.currentUser;
+      final account = await googleSignIn.signIn();
       if (account == null) {
-        // If user is not signed in, initiate the sign-in process
-        final GoogleSignInAccount? newAccount = await _googleSignIn.signIn();
-        if (newAccount == null) {
-          // User cancelled the sign-in process
-          setState(() => _isSigningIn = false);
-          return;
-        }
+        // User cancelled the sign-in sheet.
+        return;
       }
 
-      final GoogleSignInAccount? currentUser = _googleSignIn.currentUser;
-      if (currentUser != null) {
-        final GoogleSignInAuthentication authentication =
-            await currentUser.authentication;
-        final String? idToken = authentication.idToken;
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        Fluttertoast.showToast(msg: 'Google sign-in failed');
+        return;
+      }
 
-        // Send the Google ID token to the backend for server-side verification.
-        try {
-          final response = await HttpService.postWithoutAuth(
-              '/auth/oauth/google', {'idToken': idToken});
+      // Verify the id-token server-side and exchange it for our own JWTs.
+      final response = await HttpService.postWithoutAuth(
+          '/auth/oauth/google', {'idToken': idToken});
 
-          if (response['message'] == 'Success' && response['data'] != null) {
-            final data = response['data'];
-            final token = data['token'];
-            final refreshToken = data['refreshToken'];
+      if (response['message'] == 'Success' && response['data'] != null) {
+        final data = response['data'];
+        final token = data['token'];
+        final refreshToken = data['refreshToken'];
 
-            if (token != null && token.toString().isNotEmpty) {
-              SharedUser().updateLoggedInState(true);
-              SharedUser().writeToStorage('token', token);
-              SharedUser().writeToStorage('user', jsonEncode(data));
-              SharedUser().writeToStorage('refreshToken', refreshToken);
+        if (token != null && token.toString().isNotEmpty) {
+          await SharedUser().updateLoggedInState(true);
+          await SharedUser().writeToStorage('token', token);
+          await SharedUser().writeToStorage('user', jsonEncode(data));
+          await SharedUser().writeToStorage('refreshToken', refreshToken);
+          SharedUser().clearCachedUser();
 
-              if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(
-                  context, '/home', (route) => false);
-            }
-          } else {
-            Fluttertoast.showToast(
-                msg: response['message']?.toString() ?? 'Google sign-in failed');
-          }
-        } catch (e) {
-          Fluttertoast.showToast(msg: 'Google sign-in failed');
+          if (!mounted) return;
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       } else {
+        Fluttertoast.showToast(
+            msg: response['message']?.toString() ?? 'Google sign-in failed');
       }
-    } catch (e) {
-      // Handle sign-in errors
-    }
-
-    setState(() => _isSigningIn = false);
-  }
-
-  Future<void> handleSignOut() async {
-    try {
-      await _googleSignIn.signOut();
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Sign out successful")));
-    } catch (e) {
-      // Handle sign-out errors
+    } catch (_) {
+      Fluttertoast.showToast(msg: 'Google sign-in failed');
+    } finally {
+      if (mounted) setState(() => _isSigningIn = false);
     }
   }
-
-  // void handleSignOut() {
-  //   _handleSignOut;
-  // }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // SignInButton(buttonType: ButtonType.google,  onPressed: () {
-        //   _handleSignIn();
-        // }),
-
-        ElevatedButton(
-          onPressed: () async {
-            _handleSignIn();
-          },
-          style: ElevatedButton.styleFrom(
-            elevation: 5,
-            backgroundColor: whiteColor,
-            minimumSize: const Size(double.infinity, 45),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(56.0),
-            ),
-            // side: BorderSide(color: Colors.blue),
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _isSigningIn ? null : _handleSignIn,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: whiteColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(56),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Image.asset(
-                  'assets/google_logo.png',
-                  height: 25.0,
-                  width: 25.0,
+          side: BorderSide(color: greyColor.withOpacity(0.28)),
+        ),
+        child: _isSigningIn
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: purpleColor,
                 ),
-                const SizedBox(width: 10.0),
-                Text('Sign in with Google',
-                    style: blackTextStyle.copyWith(fontSize: 15)),
-                const SizedBox(
-                  width: 8,
-                )
-              ],
-            ),
-          ),
-        )
-      ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset('assets/google_logo.png', height: 22, width: 22),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Sign in with Google',
+                    style: blackTextStyle.copyWith(
+                      fontSize: 15,
+                      fontWeight: medium,
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

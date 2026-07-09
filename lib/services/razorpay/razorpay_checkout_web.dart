@@ -1,7 +1,9 @@
+// This file is only ever compiled for Flutter web (selected via conditional
+// import), where dart:js is the correct way to drive Razorpay's checkout.js.
+// ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 
 import 'razorpay_checkout.dart';
-import 'razorpay_models.dart';
 
 /// Web Checkout via Razorpay's checkout.js (loaded in web/index.html).
 class _WebCheckout implements RazorpayCheckout {

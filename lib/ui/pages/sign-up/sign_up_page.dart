@@ -24,15 +24,23 @@ class _SignUpPageState extends State<SignUpPage> {
   final emailController = TextEditingController(text: '');
   final passwordController = TextEditingController(text: '');
 
+  @override
+  void dispose() {
+    firstnameController.dispose();
+    lastnameController.dispose();
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> signUp() async {
     final url = '${ApiConfig.baseUrl}/auth/signup';
-    final firstname =
-        firstnameController.text; // Retrieve value from controller
+    final firstname = firstnameController.text;
     final lastname = lastnameController.text;
     final username = usernameController.text;
     final email = emailController.text;
     final password = passwordController.text;
-
 
     try {
       final response = await http.post(
@@ -48,19 +56,23 @@ class _SignUpPageState extends State<SignUpPage> {
         headers: {'Content-Type': 'application/json'},
       );
 
-
+      if (!mounted) return;
       if (response.statusCode == 201) {
-        const SnackBar(
-            content: Text('Sign Up Successful! Kindly Log in to Proceed'));
         Navigator.pushNamed(context, '/sign-in');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Sign up successful! Please log in to proceed.')),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sign up failed')),
         );
       }
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in failed')),
+        const SnackBar(
+            content: Text('Could not reach the server. Please try again.')),
       );
     }
   }
@@ -80,37 +92,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body:
-            // BlocConsumer<AuthBloc, AuthState>(
-            //   listener: (context, state) {
-            //     if (state is AuthFailed) {
-            //       showCustomSnackBar(context, state.error);
-            //     }
-            //       Navigator.push(
-            //         context,
-            //         MaterialPageRoute(
-            //           // builder: (context)=> HomePage()
-            //           builder: (context) => SignUpSetProfilePage(
-            //             data: SignUpModel(
-            //               firstname: firstnameController.text,
-            //               lastname: firstnameController.text,
-            //               username: usernameController.text,
-            //               email: emailController.text,
-            //               password: passwordController.text,
-            //             ),
-            //           ),
-            //         ),
-            //       );
-
-            //   },
-            //   builder: (context, state) {
-            //     if (state is AuthLoading) {
-            //       return const Center(
-            //         child: CircularProgressIndicator(),
-            //       );
-            //     }
-            //     return
-            ListView(
+        body: ListView(
       padding: const EdgeInsets.symmetric(
         horizontal: 24,
       ),
@@ -128,7 +110,7 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         ),
         Text(
-          'Join Us to Unlock&\nYour Growth',
+          'Join Us to Unlock\nYour Growth',
           style: blackTextStyle.copyWith(
             fontSize: 20,
             fontWeight: semiBold,

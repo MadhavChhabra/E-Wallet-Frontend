@@ -4,10 +4,7 @@ import 'package:flutter_credit_card/flutter_credit_card.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_card_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../../utils/navigation_utils.dart';
 import '../../../services/http_service.dart';
-import '../../../utils/shared_user.dart';
-import '../../models/user_model.dart';
 import '../widgets/custom_text_field.dart';
 
 const double kCardHeight = 225;
@@ -62,12 +59,6 @@ class _CardPaymentPageState extends State<CardPaymentPage>
   // }
 
   Future<void> _fetchDataFromUrl() async {
-     int? userId;
-      final UserModel? user = await SharedUser().getCurrentUser();
-      if (user != null) {
-        userId = user.id;
-      }
-
     try {
       final response =
           await HttpService.getWithAuth('/cards');
@@ -80,17 +71,16 @@ class _CardPaymentPageState extends State<CardPaymentPage>
       } else {
         throw Exception('Failed to load data');
       }
-    } catch (e) {
+    } catch (_) {
+      // Leave the card list empty; the UI shows the empty state.
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WebSafePopScope(
-      child: Scaffold(
+    return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        leading: const AppBackButton(),
         title: const Text('Select Card'),
       ),
       body: Container(
@@ -234,9 +224,9 @@ class _CardPaymentPageState extends State<CardPaymentPage>
                                       toIban: toIbanController.text,
                                       cardNumber: selectedCard['cardNumber'],
                                       expiryDate: selectedCard['expiryDate'],
-                                      CardHolderName:
+                                      cardHolderName:
                                           selectedCard['cardHolderName'],
-                                      CVV: selectedCard['cvv'],
+                                      cvv: selectedCard['cvv'],
                                     ),
                                   ));
                                 } else {
@@ -258,7 +248,6 @@ class _CardPaymentPageState extends State<CardPaymentPage>
           ),
         ),
       ),
-    ),
     );
   }
 

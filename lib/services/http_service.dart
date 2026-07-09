@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter_ewallet/utils/RefreshToken.dart';
-import 'package:flutter_ewallet/utils/authHeader.dart';
+import 'package:flutter_ewallet/utils/refresh_token.dart';
+import 'package:flutter_ewallet/utils/auth_header.dart';
 import 'package:flutter_ewallet/utils/api_config.dart';
 import 'package:http/http.dart' as http;
 

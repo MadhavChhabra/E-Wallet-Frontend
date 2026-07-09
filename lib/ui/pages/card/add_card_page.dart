@@ -19,7 +19,7 @@ class AddCardPage extends StatefulWidget {
 class AddCardPageState extends State<AddCardPage> {
   List<String> fromBankAccountIbans = [];
   String? selectedFromIban;
-  int BankAccountID = 0;
+  int bankAccountId = 0;
 
   String cardNumber = '';
   String expiryDate = '';
@@ -61,10 +61,10 @@ class AddCardPageState extends State<AddCardPage> {
 
         setState(() {
           fromBankAccountIbans = ibans;
-          // print(fromBankAccountIbans.toString());
         });
       }
-    } catch (error) {
+    } catch (_) {
+      // Leave the account list empty; the dropdown simply has no options.
     }
   }
 
@@ -78,10 +78,11 @@ class AddCardPageState extends State<AddCardPage> {
         int id = response['data']['id'];
 
         setState(() {
-          BankAccountID = id;
+          bankAccountId = id;
         });
       }
-    } catch (error) {
+    } catch (_) {
+      // Ignore; the id stays 0 and the backend rejects an invalid reference.
     }
   }
 
@@ -223,28 +224,20 @@ backgroundImage: "assets/bg8.jpg",
         'cardNumber': cardNumber,
         'expiryDate': expiryDate,
         'cvv': cvvCode,
-        'bankAccountId': BankAccountID,
+        'bankAccountId': bankAccountId,
         'userId': userId.toString()
       };
 
       try {
         var response = await HttpService.postWithAuth('/cards', cardData);
         if (response['message'] == 'Success') {
-
           Fluttertoast.showToast(msg: 'Card created successfully!');
-
-          Navigator.of(context).pop((route) => false);
+          if (!mounted) return;
+          Navigator.of(context).pop();
         }
-
-        // print('doing it');
-
-        // Handle response accordingly
-      } catch (e) {
-        Fluttertoast.showToast(msg: 'Error Occured');
-
-        // Handle error
+      } catch (_) {
+        Fluttertoast.showToast(msg: 'An error occurred. Please try again.');
       }
-    } else {
     }
   }
 

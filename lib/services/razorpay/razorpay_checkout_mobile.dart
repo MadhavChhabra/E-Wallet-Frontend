@@ -1,7 +1,6 @@
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 import 'razorpay_checkout.dart';
-import 'razorpay_models.dart';
 
 /// Native Android/iOS Checkout via the razorpay_flutter SDK.
 class _MobileCheckout implements RazorpayCheckout {

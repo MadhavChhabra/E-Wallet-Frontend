@@ -7,15 +7,15 @@ class CustomDropDownFieldButton<T> extends StatefulWidget {
   final void Function(T?)? onChanged;
 
   const CustomDropDownFieldButton({
-    Key? key,
+    super.key,
     required this.title,
     required this.items,
     this.value,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
-  _CustomDropDownFieldButtonState<T> createState() =>
+  State<CustomDropDownFieldButton<T>> createState() =>
       _CustomDropDownFieldButtonState<T>();
 }
 

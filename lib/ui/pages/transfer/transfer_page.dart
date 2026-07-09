@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_amount_page.dart';
-import 'package:flutter_ewallet/utils/navigation_utils.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
@@ -11,10 +10,10 @@ import '../../../utils/shared_user.dart';
 
 class TransferPage extends StatefulWidget {
   final String? receiverIban;
-  const TransferPage({Key? key, this.receiverIban}) : super(key: key);
+  const TransferPage({super.key, this.receiverIban});
 
   @override
-  _TransferPageState createState() => _TransferPageState();
+  State<TransferPage> createState() => _TransferPageState();
 }
 
 class _TransferPageState extends State<TransferPage> {
@@ -28,7 +27,6 @@ class _TransferPageState extends State<TransferPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.receiverIban != null) {
         toIbanController.text = widget.receiverIban!;
-      } else {
       }
     });
   }
@@ -56,7 +54,8 @@ class _TransferPageState extends State<TransferPage> {
           fromBankAccountIbans = ibans;
         });
       }
-    } catch (error) {
+    } catch (_) {
+      // Leave the account list empty; the dropdown simply has no options.
     }
   }
 
@@ -75,12 +74,9 @@ class _TransferPageState extends State<TransferPage> {
 
     if (receiverIban != null) {
       toIbanController.text = receiverIban;
-    } else {
     }
-    return WebSafePopScope(
-      child: Scaffold(
+    return Scaffold(
       appBar: AppBar(
-        leading: const AppBackButton(),
         title: const Text('Transfer'),
       ),
       body: ListView(
@@ -106,24 +102,6 @@ class _TransferPageState extends State<TransferPage> {
               });
             },
           ),
-          // DropdownButtonFormField<String>(
-          //   decoration: const InputDecoration(
-          //     labelText: 'Select Your IBAN',
-          //     border: OutlineInputBorder(),
-          //   ),
-          //   value: selectedFromIban,
-          //   onChanged: (String? newValue) {
-          //     setState(() {
-          //       selectedFromIban = newValue;
-          //     });
-          //   },
-          //   items: fromBankAccountIbans.map((String iban) {
-          //     return DropdownMenuItem<String>(
-          //       value: iban,
-          //       child: Text(iban),
-          //     );
-          //   }).toList(),
-          // ),
           const SizedBox(height: 15),
 
           CustomTextField(
@@ -147,21 +125,19 @@ class _TransferPageState extends State<TransferPage> {
             onPressed: () async {
               // Navigate to transfer-amount route with IBAN and description data
               if (selectedFromIban != null) {
-  
-                  final routerPin = Navigator.pushNamed(context, '/pin');
-                  if (await routerPin == true) {
-                    // ignore: use_build_context_synchronously
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TransferAmountPage(
-                          fromIban: selectedFromIban!,
-                          toIban: toIbanController.text,
-                          description: descriptionController.text,
-                        ),
+                final routerPin = Navigator.pushNamed(context, '/pin');
+                if (await routerPin == true) {
+                  if (!context.mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TransferAmountPage(
+                        fromIban: selectedFromIban!,
+                        toIban: toIbanController.text,
+                        description: descriptionController.text,
                       ),
-                    );
-                  
+                    ),
+                  );
                 }
               } else {
                 // Handle case when no IBAN is selected
@@ -186,46 +162,6 @@ class _TransferPageState extends State<TransferPage> {
           ),
         ],
       ),
-    ),
     );
   }
-
-//   Widget buildResult() {
-//     return Container(
-//       margin: const EdgeInsets.only(top: 40),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(
-//             'Result',
-//             style: blackTextStyle.copyWith(
-//               fontWeight: semiBold,
-//             ),
-//           ),
-//           const SizedBox(
-//             height: 14,
-//           ),
-//           const Wrap(
-//             spacing: 17,
-//             runSpacing: 17,
-//             children: [
-//               CustomTransferResultItem(
-//                 imageUrl: 'assets/img_friend1.png',
-//                 name: 'Yoona Jie',
-//                 username: '@yoenna',
-//                 isVerified: true,
-//               ),
-//               CustomTransferResultItem(
-//                 imageUrl: 'assets/img_friend2.png',
-//                 name: 'Elenna Jie',
-//                 username: '@elenna',
-//                 isVerified: true,
-//                 isSelected: true,
-//               ),
-//             ],
-//           ),
-//         ],
-//       ),
-//     );
-//   }
 }

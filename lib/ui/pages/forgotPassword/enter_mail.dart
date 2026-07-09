@@ -7,17 +7,23 @@ import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
-  const ForgotPasswordPage({Key? key}) : super(key: key);
+  const ForgotPasswordPage({super.key});
 
   @override
-  _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final TextEditingController emailController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> verifyEmail(BuildContext context, String email) async {
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> verifyEmail(String email) async {
     setState(() {
       _isLoading = true;
     });
@@ -95,7 +101,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         CustomFilledButton(
                           title: 'Send OTP',
                           onPressed: () {
-                            verifyEmail(context, emailController.text);
+                            verifyEmail(emailController.text);
                           },
                         ),
                       ],
