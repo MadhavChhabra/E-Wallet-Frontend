@@ -167,7 +167,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 ProfileMenuItem(
                   iconUrl: 'assets/qr_scan.png',
-                  title: 'Show QR Code',
+                  title: 'Receive money',
                   onTap: () {
                     Navigator.of(context)
                         .pushNamed('/showAccountQR')
