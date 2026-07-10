@@ -14,7 +14,9 @@ import 'package:flutter_ewallet/utils/theme.dart';
 
 import 'package:flutter_ewallet/models/transaction_item.dart';
 import 'package:flutter_ewallet/services/transaction_service.dart';
+import 'package:flutter_ewallet/ui/pages/transaction_detail_page.dart';
 import 'package:flutter_ewallet/ui/widgets/app_section_card.dart';
+import 'package:flutter_ewallet/services/wallet_account_service.dart';
 import '../../services/http_service.dart';
 import '../../services/image_service.dart';
 import '../widgets/custom_wallet_card.dart';
@@ -30,6 +32,7 @@ class TransactionListWidget extends StatefulWidget {
 class _TransactionListWidgetState extends State<TransactionListWidget> {
   List<TransactionItem> latestTransactions = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -61,10 +64,24 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
       setState(() {
         latestTransactions = items;
         _loading = false;
+        _error = null;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     }
+  }
+
+  void _openDetail(TransactionItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TransactionDetailPage(transactionId: item.id),
+      ),
+    );
   }
 
   @override
@@ -74,12 +91,27 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Latest Transactions',
-            style: blackTextStyle.copyWith(
-              fontSize: 17,
-              fontWeight: semiBold,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Latest Transactions',
+                  style: blackTextStyle.copyWith(
+                    fontSize: 17,
+                    fontWeight: semiBold,
+                  ),
+                ),
+              ),
+              if (latestTransactions.isNotEmpty)
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/transactionHistory'),
+                  child: Text(
+                    'See all',
+                    style: blueTextStyle.copyWith(fontSize: 13),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 12),
           if (_loading)
@@ -89,14 +121,53 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
                 child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
               ),
             )
+          else if (_error != null)
+            AppSectionCard(
+              child: Column(
+                children: [
+                  Text(
+                    'Couldn\'t load transactions',
+                    style: blackTextStyle.copyWith(fontWeight: semiBold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(_error!, style: greyTextStyle.copyWith(fontSize: 12)),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () {
+                      setState(() => _loading = true);
+                      _loadTransactions(forceRefresh: true);
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
           else if (latestTransactions.isEmpty)
             AppSectionCard(
-              child: Center(
-                child: Text(
-                  'Your latest transactions will appear here.',
-                  style: greyTextStyle.copyWith(fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    'No transactions yet.',
+                    style: greyTextStyle.copyWith(fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/transfer'),
+                        child: const Text('Send money'),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/topup-amount'),
+                        child: const Text('Top up'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             )
           else
@@ -108,6 +179,7 @@ class _TransactionListWidgetState extends State<TransactionListWidget> {
                     time: transaction.timeLabel,
                     value: transaction.value,
                     iconUrl: transaction.iconUrl,
+                    onTap: () => _openDetail(transaction),
                   );
                 }).toList(),
               ),
@@ -129,6 +201,7 @@ class _AccountsWidgetState extends State<AccountsWidget> {
   List<dynamic> data = [];
   int currentIndex = 0;
   bool loading = true;
+  String? loadError;
   final PageController _pageController = PageController();
   String? fullName;
   bool _provisioned = false;
@@ -152,6 +225,7 @@ class _AccountsWidgetState extends State<AccountsWidget> {
   Future<void> fetchAccountData() async {
     int? userId;
     String? naam;
+    setState(() => loadError = null);
     try {
       final UserModel? user = await SharedUser().getCurrentUser();
       if (user != null) {
@@ -196,15 +270,29 @@ class _AccountsWidgetState extends State<AccountsWidget> {
       setState(() {
         data = accounts;
         loading = false;
+        loadError = null;
         fullName = naam;
       });
+      if (accounts.isNotEmpty) {
+        final iban = accounts[currentIndex.clamp(0, accounts.length - 1)]['iban']
+            ?.toString();
+        if (iban != null) {
+          WalletAccountService.instance.setPreferredIban(iban);
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
           loading = false;
+          loadError = e.toString().replaceFirst('Exception: ', '');
         });
       }
     }
+  }
+
+  String? get selectedIban {
+    if (data.isEmpty || currentIndex >= data.length) return null;
+    return data[currentIndex]['iban']?.toString();
   }
 
   @override
@@ -213,6 +301,44 @@ class _AccountsWidgetState extends State<AccountsWidget> {
       return const SizedBox(
         height: 250,
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (loadError != null) {
+      return SizedBox(
+        height: 250,
+        child: AppSectionCard(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_outlined, color: greyColor, size: 36),
+              const SizedBox(height: 12),
+              Text(
+                'Couldn\'t load balance',
+                style: blackTextStyle.copyWith(
+                  fontSize: 16,
+                  fontWeight: semiBold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                loadError!,
+                style: greyTextStyle.copyWith(fontSize: 12),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () {
+                  setState(() => loading = true);
+                  fetchAccountData();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -238,6 +364,10 @@ class _AccountsWidgetState extends State<AccountsWidget> {
                     },
                     onPageChanged: (index) {
                       setState(() => currentIndex = index);
+                      final iban = data[index]['iban']?.toString();
+                      if (iban != null) {
+                        WalletAccountService.instance.setPreferredIban(iban);
+                      }
                     },
                   ),
                 ),
@@ -603,7 +733,13 @@ class _HomepageState extends State<Homepage> {
                 preferredHeight: 32,
                 preferredWidth: 32,
                 onTap: () {
-                  Navigator.pushNamed(context, '/topup-amount');
+                  final iban =
+                      _accountsListKey.currentState?.selectedIban;
+                  Navigator.pushNamed(
+                    context,
+                    '/topup-amount',
+                    arguments: iban,
+                  );
                 },
               ),
               const SizedBox(width: 8),
@@ -620,8 +756,8 @@ class _HomepageState extends State<Homepage> {
               const SizedBox(width: 8),
               CustomHomeServices(
                 iconUrl: 'assets/card_payment.png',
-                title: 'Pay Using',
-                subtitle: 'Card',
+                title: 'Pay from',
+                subtitle: 'Wallet',
                 preferredHeight: 35,
                 preferredWidth: 35,
                 onTap: () {
@@ -677,19 +813,6 @@ class _HomepageState extends State<Homepage> {
                       clipBehavior: Clip.none,
                       children: [
                         Icon(Icons.notifications_outlined, color: blackColor),
-                        Positioned(
-                          right: -1,
-                          top: -1,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: redColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: whiteColor, width: 1.5),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
