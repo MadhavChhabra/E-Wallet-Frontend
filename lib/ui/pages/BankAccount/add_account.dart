@@ -54,7 +54,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
 
       if (response['message'] == 'Success') {
         AppEvents.instance.notifyWalletChanged();
-        Fluttertoast.showToast(msg: 'Account created');
+        Fluttertoast.showToast(msg: 'Account linked');
         if (!mounted) return;
         Navigator.of(context).pop();
       } else {
@@ -71,31 +71,31 @@ class _AddAccountPageState extends State<AddAccountPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New Account')),
+      appBar: AppBar(title: const Text('Link a bank account')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Image.asset('assets/add_bank.png', height: 260),
+              Image.asset('assets/add_bank.png', height: 240),
               const SizedBox(height: 12),
               Text(
-                'Name your new account',
+                'Link a bank account',
                 style: blackTextStyle.copyWith(fontSize: 20, fontWeight: semiBold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
               Text(
-                'We’ll generate the account number for you. It starts empty — add money by transferring or topping up.',
+                'Give it a nickname. We’ll add it as a linked account you can send from, receive into, and top up.',
                 style: greyTextStyle.copyWith(fontSize: 13, height: 1.4),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               CustomTextField(
                 controller: nameController,
-                title: 'Account name',
-                hintText: 'e.g. Savings',
+                title: 'Account nickname',
+                hintText: 'e.g. HDFC Savings',
                 keyboardType: TextInputType.name,
               ),
               const SizedBox(height: 28),
@@ -103,7 +103,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
                   ? const Center(child: CircularProgressIndicator())
                   : CustomFilledButton(
                       onPressed: saveBankAccount,
-                      title: 'Create account',
+                      title: 'Link account',
                     ),
             ],
           ),

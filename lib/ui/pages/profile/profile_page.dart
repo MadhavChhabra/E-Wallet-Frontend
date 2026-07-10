@@ -159,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 ProfileMenuItem(
                   iconUrl: 'assets/ic_wallet.png',
-                  title: 'Add Account',
+                  title: 'Link a bank account',
                   onTap: () {
                     Navigator.pushNamed(context, '/addAccount')
                         .then((value) => setState(() {}));
