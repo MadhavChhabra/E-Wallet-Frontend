@@ -23,6 +23,9 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   bool _hasMore = true;
   int _page = 0;
   String? _error;
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+  String _typeFilter = 'all';
 
   @override
   void initState() {
@@ -34,15 +37,40 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   @override
   void dispose() {
     AppEvents.instance.walletChanged.removeListener(_onWalletChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _onWalletChanged() => _loadTransactions(reset: true);
+  // Refresh in place (keep showing the current list) when a wallet action
+  // completes, so the screen never flashes a spinner or empty state.
+  void _onWalletChanged() => _loadTransactions(reset: true, silent: true);
 
-  Future<void> _loadTransactions({bool reset = false}) async {
+  List<TransactionItem> get _filtered {
+    final q = _query.trim().toLowerCase();
+    return _transactions.where((t) {
+      switch (_typeFilter) {
+        case 'sent':
+          if (!t.isOutgoing) return false;
+          break;
+        case 'received':
+          if (t.isOutgoing) return false;
+          break;
+        case 'topup':
+          if (t.typeId != 4) return false;
+          break;
+      }
+      if (q.isEmpty) return true;
+      return t.title.toLowerCase().contains(q) ||
+          (t.counterpartyUsername?.toLowerCase().contains(q) ?? false) ||
+          (t.description?.toLowerCase().contains(q) ?? false) ||
+          t.value.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  Future<void> _loadTransactions({bool reset = false, bool silent = false}) async {
     if (reset) {
       setState(() {
-        _loading = true;
+        if (!silent) _loading = true;
         _error = null;
         _page = 0;
         _hasMore = true;
@@ -158,8 +186,20 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                 ),
               )
             else ...[
-              ..._buildMonthlySections(_transactions),
-              if (_hasMore)
+              _buildSearchAndFilters(),
+              const SizedBox(height: 4),
+              if (_filtered.isEmpty)
+                AppSectionCard(
+                  child: Center(
+                    child: Text(
+                      'No matching transactions',
+                      style: greyTextStyle.copyWith(fontSize: 14),
+                    ),
+                  ),
+                )
+              else
+                ..._buildMonthlySections(_filtered),
+              if (_hasMore && _query.isEmpty && _typeFilter == 'all')
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
@@ -173,6 +213,68 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                 ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _searchController,
+          onChanged: (v) => setState(() => _query = v),
+          decoration: InputDecoration(
+            hintText: 'Search transactions',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            isDense: true,
+            suffixIcon: _query.isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _filterChip('All', 'all'),
+              _filterChip('Sent', 'sent'),
+              _filterChip('Received', 'received'),
+              _filterChip('Top-ups', 'topup'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _filterChip(String label, String value) {
+    final selected = _typeFilter == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => setState(() => _typeFilter = value),
+        backgroundColor: whiteColor,
+        selectedColor: purpleColor.withOpacity(0.14),
+        labelStyle: TextStyle(
+          color: selected ? purpleColor : blackColor,
+          fontWeight: selected ? semiBold : regular,
+          fontSize: 13,
+        ),
+        side: BorderSide(
+          color: selected
+              ? purpleColor.withOpacity(0.5)
+              : greyColor.withOpacity(0.3),
         ),
       ),
     );
