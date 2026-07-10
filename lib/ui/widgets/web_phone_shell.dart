@@ -8,10 +8,11 @@ class WebPhoneShell extends StatelessWidget {
 
   final Widget child;
 
-  /// Standard mobile aspect ratio (width : height).
-  static const double _aspectRatio = 9 / 19.5;
-  static const double _minWidth = 360;
-  static const double _maxWidth = 414;
+  /// Mobile aspect ratio (width : height). Slightly wider than a tall phone so
+  /// content doesn't feel cramped inside the desktop preview frame.
+  static const double _aspectRatio = 9 / 18.2;
+  static const double _minWidth = 390;
+  static const double _maxWidth = 468;
   static const double _wideBreakpoint = 520;
 
   static _PhoneDimensions _dimensions(BoxConstraints constraints) {
