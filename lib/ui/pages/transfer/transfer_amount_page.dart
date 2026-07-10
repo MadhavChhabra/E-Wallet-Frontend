@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/models/payment_receipt.dart';
 import 'package:flutter_ewallet/services/http_service.dart';
+import 'package:flutter_ewallet/services/wallet_account_service.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/payment_processing_screen.dart';
-import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/numeric_keypad.dart';
+import 'package:flutter_ewallet/ui/widgets/payment_success_screen.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
+import 'package:flutter_ewallet/utils/idempotency.dart';
 import 'package:flutter_ewallet/utils/pin_gate.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
@@ -65,6 +68,21 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
       return;
     }
 
+    final fromAccount =
+        await WalletAccountService.instance.accountForIban(widget.fromIban);
+    if (fromAccount != null && amount > fromAccount.balance) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Insufficient balance. Available: ₹${fromAccount.balance.toStringAsFixed(0)}',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     final pinOk = await requirePin(context);
     if (!pinOk || !mounted) return;
 
@@ -79,18 +97,40 @@ class _TransferAmountPageState extends State<TransferAmountPage> {
     };
 
     try {
-      final response =
-          await HttpService.postWithAuth('/bank-accounts/transfer', transferData);
+      final response = await HttpService.postWithAuth(
+        '/bank-accounts/transfer',
+        transferData,
+        idempotencyKey: newIdempotencyKey(),
+      );
 
       if (!mounted) return;
       setState(() => _submitting = false);
 
       if (response['message'] == 'Success') {
         AppEvents.instance.notifyWalletChanged();
+
+        final toAccount =
+            await WalletAccountService.instance.accountForIban(widget.toIban);
+        final payeeLabel = toAccount?.label ??
+            (widget.toIban.length > 4
+                ? '…${widget.toIban.substring(widget.toIban.length - 4)}'
+                : widget.toIban);
+
+        final receipt = PaymentReceipt(
+          headline: 'Transfer successful',
+          amount: amount,
+          completedAt: DateTime.now(),
+          counterpartyLabel: payeeLabel,
+          walletLabel: fromAccount?.label,
+          referenceId: response['data']?['id']?.toString(),
+          subtitle: widget.description.isNotEmpty ? widget.description : null,
+        );
+
+        if (!mounted) return;
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => PaymentProcessingScreen(
-              nextPage: const TransferSuccessPage(),
+              nextPage: PaymentSuccessScreen(receipt: receipt),
               message: 'Sending money…',
             ),
           ),
