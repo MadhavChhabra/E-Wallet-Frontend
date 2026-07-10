@@ -3,16 +3,10 @@ import 'dart:convert';
 import 'package:flutter_ewallet/utils/refresh_token.dart';
 import 'package:flutter_ewallet/utils/auth_header.dart';
 import 'package:flutter_ewallet/utils/api_config.dart';
+import 'package:flutter_ewallet/utils/session_guard.dart';
 import 'package:http/http.dart' as http;
 
 /// Thin HTTP client for the E-Wallet API.
-///
-/// Responsibilities:
-///  * attaches the bearer access token on authenticated calls,
-///  * transparently refreshes the token once on a 401 and retries the request,
-///  * decodes JSON responses into a `Map`.
-///
-/// It intentionally does not log tokens or response bodies.
 class HttpService {
   static String get baseUrl => ApiConfig.baseUrl;
 
@@ -20,8 +14,6 @@ class HttpService {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-
-  // --- Unauthenticated -------------------------------------------------------
 
   static Future<Map<String, dynamic>> postWithoutAuth(
       String url, Map<String, dynamic> body) async {
@@ -34,55 +26,75 @@ class HttpService {
   }
 
   static Future<Map<String, dynamic>> getWithoutAuth(String url) async {
-    final response = await http.get(Uri.parse('$baseUrl$url'), headers: _jsonHeaders);
+    final response =
+        await http.get(Uri.parse('$baseUrl$url'), headers: _jsonHeaders);
     return _decode(response);
   }
 
-  // --- Authenticated ---------------------------------------------------------
-
   static Future<Map<String, dynamic>> getWithAuth(String url) {
-    return _authed((headers) => http.get(Uri.parse('$baseUrl$url'), headers: headers));
+    return _authed(
+        (headers) => http.get(Uri.parse('$baseUrl$url'), headers: headers));
   }
 
   static Future<Map<String, dynamic>> postWithAuth(
-      String url, Map<String, dynamic> body) {
-    return _authed((headers) =>
-        http.post(Uri.parse('$baseUrl$url'), headers: headers, body: jsonEncode(body)));
+    String url,
+    Map<String, dynamic> body, {
+    String? idempotencyKey,
+  }) {
+    return _authed((headers) {
+      if (idempotencyKey != null) {
+        headers = {...headers, 'Idempotency-Key': idempotencyKey};
+      }
+      return http.post(
+        Uri.parse('$baseUrl$url'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+    });
   }
 
   static Future<Map<String, dynamic>> putWithAuth(
       String url, Map<String, dynamic> body) {
-    return _authed((headers) =>
-        http.put(Uri.parse('$baseUrl$url'), headers: headers, body: jsonEncode(body)));
+    return _authed((headers) => http.put(
+          Uri.parse('$baseUrl$url'),
+          headers: headers,
+          body: jsonEncode(body),
+        ));
   }
 
   static Future<Map<String, dynamic>> deleteWithAuth(String url) {
-    return _authed((headers) => http.delete(Uri.parse('$baseUrl$url'), headers: headers));
+    return _authed(
+        (headers) => http.delete(Uri.parse('$baseUrl$url'), headers: headers));
   }
 
-  /// Revokes the session on the server. Safe to call even if it fails.
   static Future<void> logout() async {
     try {
       await _authed((headers) =>
           http.post(Uri.parse('$baseUrl/auth/logout'), headers: headers));
-    } catch (_) {
-      // Logout is best-effort; local credentials are cleared regardless.
-    }
+    } catch (_) {}
   }
 
-  // --- Internals -------------------------------------------------------------
-
-  /// Runs [send] with an auth header. On a 401, refreshes the access token once
-  /// and retries before giving up.
   static Future<Map<String, dynamic>> _authed(
       Future<http.Response> Function(Map<String, String> headers) send) async {
     var headers = {...await authHeader(), ..._jsonHeaders};
     var response = await send(headers);
 
     if (response.statusCode == 401) {
-      await RefreshTokenButton.getAccessToken();
+      final refreshed = await RefreshTokenButton.getAccessToken();
+      if (!refreshed) {
+        SessionGuard.redirectToSignIn(
+          message: 'Session expired. Please sign in again.',
+        );
+        throw ApiException('Session expired. Please sign in again.');
+      }
       headers = {...await authHeader(), ..._jsonHeaders};
       response = await send(headers);
+      if (response.statusCode == 401) {
+        SessionGuard.redirectToSignIn(
+          message: 'Session expired. Please sign in again.',
+        );
+        throw ApiException('Session expired. Please sign in again.');
+      }
     }
 
     return _decode(response);
@@ -129,7 +141,6 @@ class HttpService {
   }
 }
 
-/// Raised when the API returns a non-success HTTP status.
 class ApiException implements Exception {
   ApiException(this.message);
 

@@ -1,4 +1,5 @@
 import 'package:flutter_ewallet/services/http_service.dart';
+import 'package:flutter_ewallet/services/wallet_account_service.dart';
 
 /// Client for the backend's Razorpay top-up endpoints.
 class PaymentService {
@@ -38,19 +39,8 @@ class PaymentService {
     throw Exception(res['message'] ?? 'Payment verification failed');
   }
 
-  /// Returns the current user's first wallet IBAN, or null if they have none.
+  /// Returns the current user's preferred wallet IBAN, or null if they have none.
   static Future<String?> primaryWalletIban() async {
-    final res = await HttpService.getWithAuth('/bank-accounts');
-    final data = res['data'];
-    List<dynamic>? content;
-    if (data is Map && data['content'] is List) {
-      content = data['content'] as List<dynamic>;
-    } else if (data is List) {
-      content = data;
-    }
-    if (content != null && content.isNotEmpty) {
-      return content.first['iban'] as String?;
-    }
-    return null;
+    return WalletAccountService.instance.preferredWalletIban();
   }
 }
