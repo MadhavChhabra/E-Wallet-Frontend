@@ -1,9 +1,10 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/card_service.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/card_display.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:flutter_ewallet/ui/widgets/saved_card_widget.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../../services/http_service.dart';
 
@@ -32,6 +33,7 @@ class _SelectCardState extends State<SelectCard> {
   int? selectedCardIndex;
   List<_SavedCardEntry> creditCards = [];
   bool _loading = true;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -83,6 +85,48 @@ class _SelectCardState extends State<SelectCard> {
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<void> _deleteSelected() async {
+    if (selectedCardIndex == null || _deleting) return;
+    final card = creditCards[selectedCardIndex!];
+    final id = card.cardId;
+    if (id == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove card?'),
+        content: Text(
+          'Remove ${CardDisplay.holder(card.cardData)} ending ${CardDisplay.number(card.cardData).substring(CardDisplay.number(card.cardData).length - 4)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    final ok = await CardService.instance.deleteCard(id);
+    if (!mounted) return;
+    setState(() {
+      _deleting = false;
+      if (ok) selectedCardIndex = null;
+    });
+    if (ok) {
+      Fluttertoast.showToast(msg: 'Card removed');
+      await _fetchDataFromUrl();
+    } else {
+      Fluttertoast.showToast(msg: 'Could not remove card');
     }
   }
 
@@ -152,6 +196,28 @@ class _SelectCardState extends State<SelectCard> {
       appBar: AppBar(
         title: const Text('Your cards'),
       ),
+      bottomNavigationBar: selectedCardIndex != null
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: FilledButton.icon(
+                  onPressed: _deleting ? null : _deleteSelected,
+                  icon: _deleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                  label: Text(_deleting ? 'Removing…' : 'Remove card'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: redColor,
+                    foregroundColor: whiteColor,
+                  ),
+                ),
+              ),
+            )
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : creditCards.isEmpty
@@ -214,6 +280,12 @@ class _SavedCardEntry extends StatelessWidget {
   final Map<String, dynamic> cardData;
   final VoidCallback onTap;
   final int backgroundIndex;
+
+  int? get cardId {
+    final id = cardData['id'];
+    if (id is int) return id;
+    return int.tryParse('$id');
+  }
 
   @override
   Widget build(BuildContext context) {

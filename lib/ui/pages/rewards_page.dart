@@ -1,11 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ewallet/services/transaction_service.dart';
+import 'package:flutter_ewallet/utils/shared.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
-class RewardsPage extends StatelessWidget {
+class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
 
   @override
+  State<RewardsPage> createState() => _RewardsPageState();
+}
+
+class _RewardsPageState extends State<RewardsPage> {
+  double _totalSpend = 0;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final items =
+          await TransactionService.instance.fetchForCurrentUser(forceRefresh: true);
+      if (!mounted) return;
+      setState(() {
+        _totalSpend = TransactionService.instance.totalOutgoingSpend(items);
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  _TierInfo _tierInfo() {
+    final level = (_totalSpend ~/ 10000) + 1;
+    final levelCap = level * 10000;
+    final progress = (_totalSpend / levelCap).clamp(0.0, 1.0);
+    final badge = level >= 3
+        ? 'Gold'
+        : level >= 2
+            ? 'Silver'
+            : 'Bronze';
+    return _TierInfo(badge: badge, progress: progress, level: level);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final tier = _tierInfo();
+
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -20,16 +64,20 @@ class RewardsPage extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Earn perks as you spend and top up your wallet.',
+              'Based on your real wallet spending — not promotional credits.',
               style: greyTextStyle.copyWith(fontSize: 14, height: 1.4),
             ),
             const SizedBox(height: 24),
-            const _RewardHeroCard(
-              title: 'Level progress',
-              subtitle: 'Keep transacting to unlock higher tiers.',
-              progress: 0.42,
-              badge: 'Silver',
-            ),
+            if (_loading)
+              const Center(child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              _RewardHeroCard(
+                title: 'Level ${tier.level} progress',
+                subtitle:
+                    '${formatCurrency(_totalSpend)} spent · keep transacting to level up',
+                progress: tier.progress,
+                badge: tier.badge,
+              ),
             const SizedBox(height: 16),
             _OfferCard(
               icon: Icons.local_offer_outlined,
@@ -42,21 +90,33 @@ class RewardsPage extends StatelessWidget {
             _OfferCard(
               icon: Icons.card_giftcard_outlined,
               title: 'Refer & earn',
-              subtitle: 'Invite friends and earn wallet credits.',
+              subtitle: 'Coming soon — invite friends for wallet credits.',
               accent: blueColor,
             ),
             const SizedBox(height: 12),
             _OfferCard(
               icon: Icons.verified_user_outlined,
-              title: 'Verified account bonus',
-              subtitle: 'Complete your profile to unlock extra limits.',
+              title: 'Complete your profile',
+              subtitle: 'Add a profile photo and secure PIN.',
               accent: greenColor,
+              onTap: () => Navigator.pushNamed(context, '/profile'),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _TierInfo {
+  const _TierInfo({
+    required this.badge,
+    required this.progress,
+    required this.level,
+  });
+  final String badge;
+  final double progress;
+  final int level;
 }
 
 class _RewardHeroCard extends StatelessWidget {

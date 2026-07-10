@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ewallet/ui/pages/ID_Card/add_id_card.dart';
 import 'package:flutter_ewallet/ui/pages/navigation.dart';
 import 'package:flutter_ewallet/ui/pages/qr_code_scanner.dart';
 import 'package:flutter_ewallet/ui/pages/card/add_card_page.dart';
@@ -24,16 +23,22 @@ import 'package:flutter_ewallet/ui/pages/top-up/top_up_amount_page.dart';
 import 'package:flutter_ewallet/ui/pages/top-up/top_up_page.dart';
 import 'package:flutter_ewallet/ui/pages/top-up/top_up_success.dart';
 import 'package:flutter_ewallet/ui/pages/transaction_history.dart';
+import 'package:flutter_ewallet/ui/pages/transaction_detail_page.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_page.dart';
 import 'package:flutter_ewallet/ui/pages/transfer/transfer_success_page.dart';
 import 'package:flutter_ewallet/ui/pages/BankAccount/add_account.dart';
+import 'package:flutter_ewallet/ui/pages/ID_Card/add_id_card.dart';
 
 import 'package:flutter_ewallet/ui/widgets/web_phone_shell.dart';
 import 'package:flutter_ewallet/utils/api_config.dart';
+import 'package:flutter_ewallet/utils/session_guard.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
+
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SessionGuard.navigatorKey = rootNavigatorKey;
   await ApiConfig.init();
   runApp(const MyApp());
 }
@@ -44,6 +49,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       debugShowCheckedModeBanner: false,
       builder: (context, child) =>
           WebPhoneShell(child: child ?? const SizedBox.shrink()),
@@ -63,7 +69,12 @@ class MyApp extends StatelessWidget {
         '/profile-edit-success': (context) => const ProfileSuccesPage(),
         '/edit-pin': (context) => const EditProfilePinPage(),
         '/topup': (context) => const TopUpPage(),
-        '/topup-amount': (context) => const TopUpAmountPage(),
+        '/topup-amount': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return TopUpAmountPage(
+            initialIban: args is String ? args : null,
+          );
+        },
         '/topup-success': (context) => const TopUpSuccessPage(),
         '/transfer': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
@@ -72,20 +83,27 @@ class MyApp extends StatelessWidget {
           );
         },
         '/selfTransfer': (context) => const SelfTransferPage(),
-        // '/transfer-amount': (context) => const TransferAmountPage(),
         '/transfer-success': (context) => const TransferSuccessPage(),
-
         '/accounts': (context) => const AccountsWidget(),
         '/addAccount': (context) => const AddAccountPage(),
         '/addCard': (context) => const AddCardPage(),
-        '/selectCard': (context) =>  const SelectCard(),
+        '/selectCard': (context) => const SelectCard(),
         '/addIDCard': (context) => const IdCardUploadPage(),
         '/transactionHistory': (context) => const TransactionHistoryPage(),
+        '/transaction-detail': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final id = args is int ? args : int.tryParse('$args');
+          if (id == null) {
+            return const Scaffold(
+              body: Center(child: Text('Invalid transaction')),
+            );
+          }
+          return TransactionDetailPage(transactionId: id);
+        },
         '/showAccountQR': (context) => const QRCodeGenerator(),
         '/QR_Scanner': (context) => const QrScannerScreen(),
-        '/cardPayment':(context) =>  const CardPaymentPage(),
-        '/forgotPasswordEnterMail':(context) =>   const ForgotPasswordPage(),
-        // '/forgotPasswordVerifyOTP':(context) =>   VerifyOTP(),
+        '/cardPayment': (context) => const CardPaymentPage(),
+        '/forgotPasswordEnterMail': (context) => const ForgotPasswordPage(),
       },
     );
   }

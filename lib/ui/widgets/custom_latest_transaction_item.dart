@@ -6,6 +6,7 @@ class LatestTransactionItem extends StatelessWidget {
   final String title;
   final String time;
   final String value;
+  final VoidCallback? onTap;
 
   const LatestTransactionItem({
     super.key,
@@ -13,6 +14,7 @@ class LatestTransactionItem extends StatelessWidget {
     required this.title,
     required this.time,
     required this.value,
+    this.onTap,
   });
 
   @override
@@ -20,7 +22,7 @@ class LatestTransactionItem extends StatelessWidget {
     final isCredit = value.trimLeft().startsWith('+');
     final amountColor = isCredit ? greenColor : blackColor;
 
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,6 +70,13 @@ class LatestTransactionItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (onTap == null) return row;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: row,
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_dropdown_field.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_text_field.dart';
 import 'package:flutter_ewallet/ui/widgets/saved_card_widget.dart';
+import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../services/http_service.dart';
 
@@ -126,7 +127,7 @@ class _CardPaymentPageState extends State<CardPaymentPage>
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(title: const Text('Pay with card')),
+      appBar: AppBar(title: const Text('Pay from wallet')),
       body: _loading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : Container(
@@ -143,9 +144,13 @@ class _CardPaymentPageState extends State<CardPaymentPage>
               ),
               child: creditCards.isEmpty
                   ? Center(
-                      child: Text(
-                        'Add a card first from the Cards tab (+).',
-                        textAlign: TextAlign.center,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'Add a card for reference, then pay from your wallet balance.',
+                          textAlign: TextAlign.center,
+                          style: greyTextStyle.copyWith(fontSize: 14),
+                        ),
                       ),
                     )
                   : SingleChildScrollView(

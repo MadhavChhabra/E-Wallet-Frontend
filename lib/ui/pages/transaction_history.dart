@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/models/transaction_item.dart';
 import 'package:flutter_ewallet/services/transaction_service.dart';
+import 'package:flutter_ewallet/ui/pages/transaction_detail_page.dart';
 import 'package:flutter_ewallet/ui/widgets/app_section_card.dart';
+import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
+import 'package:flutter_ewallet/ui/widgets/custom_latest_transaction_item.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:intl/intl.dart';
-
-import '../widgets/custom_latest_transaction_item.dart';
 
 class TransactionHistoryPage extends StatefulWidget {
   const TransactionHistoryPage({super.key});
@@ -16,14 +17,18 @@ class TransactionHistoryPage extends StatefulWidget {
 }
 
 class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
-  List<TransactionItem> latestTransactions = [];
+  final List<TransactionItem> _transactions = [];
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 0;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     AppEvents.instance.walletChanged.addListener(_onWalletChanged);
-    _loadTransactions();
+    _loadTransactions(reset: true);
   }
 
   @override
@@ -32,28 +37,60 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     super.dispose();
   }
 
-  void _onWalletChanged() => _loadTransactions(forceRefresh: true);
+  void _onWalletChanged() => _loadTransactions(reset: true);
 
-  Future<void> _loadTransactions({bool forceRefresh = false}) async {
+  Future<void> _loadTransactions({bool reset = false}) async {
+    if (reset) {
+      setState(() {
+        _loading = true;
+        _error = null;
+        _page = 0;
+        _hasMore = true;
+      });
+    } else {
+      if (_loadingMore || !_hasMore) return;
+      setState(() => _loadingMore = true);
+    }
+
     try {
-      final items = await TransactionService.instance.fetchForCurrentUser(
-        forceRefresh: forceRefresh,
+      final result = await TransactionService.instance.fetchPage(
+        page: reset ? 0 : _page,
+        size: 20,
+        forceRefresh: reset,
       );
       if (!mounted) return;
       setState(() {
-        latestTransactions = items;
+        if (reset) _transactions.clear();
+        _transactions.addAll(result.items);
+        _page = result.page + 1;
+        _hasMore = result.hasMore;
         _loading = false;
+        _loadingMore = false;
+        _error = null;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadingMore = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
     }
+  }
+
+  void _openDetail(TransactionItem item) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TransactionDetailPage(transactionId: item.id),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => _loadTransactions(forceRefresh: true),
+        onRefresh: () => _loadTransactions(reset: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
@@ -78,16 +115,63 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
               )
-            else if (latestTransactions.isEmpty)
+            else if (_error != null && _transactions.isEmpty)
               AppSectionCard(
-                child: Text(
-                  'No transactions yet. Try a transfer or top-up.',
-                  style: greyTextStyle.copyWith(fontSize: 14),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  children: [
+                    Text(
+                      'Couldn\'t load transactions',
+                      style: blackTextStyle.copyWith(fontWeight: semiBold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_error!, style: greyTextStyle.copyWith(fontSize: 13)),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => _loadTransactions(reset: true),
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
               )
-            else
-              ..._buildMonthlySections(latestTransactions),
+            else if (_transactions.isEmpty)
+              AppSectionCard(
+                child: Column(
+                  children: [
+                    Text(
+                      'No transactions yet. Try a transfer or top-up.',
+                      style: greyTextStyle.copyWith(fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomFilledButton(
+                      title: 'Send money',
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/transfer'),
+                    ),
+                    const SizedBox(height: 8),
+                    CustomTextButton(
+                      title: 'Top up wallet',
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/topup-amount'),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              ..._buildMonthlySections(_transactions),
+              if (_hasMore)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: _loadingMore
+                        ? const CircularProgressIndicator(strokeWidth: 2)
+                        : OutlinedButton(
+                            onPressed: () => _loadTransactions(),
+                            child: const Text('Load more'),
+                          ),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
@@ -135,6 +219,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                     title: transaction.title,
                     time: transaction.timeLabel,
                     value: transaction.value,
+                    onTap: () => _openDetail(transaction),
                   ),
                 )
                 .toList(),
