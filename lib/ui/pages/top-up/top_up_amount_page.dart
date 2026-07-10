@@ -225,11 +225,14 @@ class _TopUpAmountPageState extends State<TopUpAmountPage> {
                       bottom: BorderSide(color: greyColor.withOpacity(0.4)),
                     ),
                   ),
-                  child: Text(
-                    '₹ ${amountController.text}',
-                    style: whiteTextStyle.copyWith(
-                      fontSize: 40,
-                      fontWeight: semiBold,
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: amountController,
+                    builder: (_, value, __) => Text(
+                      '₹ ${value.text}',
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 40,
+                        fontWeight: semiBold,
+                      ),
                     ),
                   ),
                 ),
