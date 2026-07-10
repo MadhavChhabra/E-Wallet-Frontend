@@ -30,23 +30,45 @@ class TransactionService {
       return _cache!;
     }
 
+    final page = await fetchPage(page: 0, size: 50, forceRefresh: forceRefresh);
+    _cache = page.items;
+    _cachedAt = DateTime.now();
+    return _cache!;
+  }
+
+  Future<TransactionPage> fetchPage({
+    int page = 0,
+    int size = 20,
+    bool forceRefresh = false,
+  }) async {
     final UserModel? user = await SharedUser().getCurrentUser();
     final currentUserId = user?.id?.toString();
     if (currentUserId == null) {
-      _cache = const [];
-      _cachedAt = DateTime.now();
-      return _cache!;
+      return const TransactionPage(
+        items: [],
+        page: 0,
+        totalPages: 0,
+        hasMore: false,
+      );
     }
 
-    final response =
-        await HttpService.getWithAuth('/transactions/users/${user!.id}');
+    final response = await HttpService.getWithAuth(
+      '/transactions/users/${user!.id}?page=$page&size=$size&sort=createdAt,desc',
+    );
     if (response['message'] != 'Success') {
-      _cache = const [];
-      _cachedAt = DateTime.now();
-      return _cache!;
+      return TransactionPage(
+        items: const [],
+        page: page,
+        totalPages: 0,
+        hasMore: false,
+      );
     }
 
-    final dataList = response['data']['content'] as List<dynamic>? ?? [];
+    final data = response['data'];
+    final dataList = data is Map
+        ? (data['content'] as List<dynamic>? ?? [])
+        : (data as List<dynamic>? ?? []);
+    final totalPages = data is Map ? (data['totalPages'] as int? ?? 1) : 1;
 
     final items = <TransactionItem>[];
     for (final raw in dataList) {
@@ -55,24 +77,41 @@ class TransactionService {
     }
 
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    _cache = items;
-    _cachedAt = DateTime.now();
-    return items;
+
+    if (page == 0 && !forceRefresh) {
+      _cache = items;
+      _cachedAt = DateTime.now();
+    }
+
+    return TransactionPage(
+      items: items,
+      page: page,
+      totalPages: totalPages,
+      hasMore: page + 1 < totalPages,
+    );
+  }
+
+  Future<TransactionItem?> fetchById(int id) async {
+    final response = await HttpService.getWithAuth('/transactions/$id');
+    if (response['message'] != 'Success') return null;
+    final raw = response['data'];
+    if (raw is! Map<String, dynamic>) return null;
+
+    final user = await SharedUser().getCurrentUser();
+    return _mapTransaction(raw, user?.id?.toString());
   }
 
   double totalOutgoingSpend(List<TransactionItem> items) {
     var total = 0.0;
     for (final item in items) {
       if (!item.isOutgoing) continue;
-      final amount = double.tryParse(
-        item.value.replaceAll(RegExp(r'[^\d.]'), ''),
-      );
-      if (amount != null) total += amount;
+      total += item.amount;
     }
     return total;
   }
 
-  List<String> recentCounterparties(List<TransactionItem> items, {int limit = 8}) {
+  List<String> recentCounterparties(List<TransactionItem> items,
+      {int limit = 8}) {
     final seen = <String>{};
     final names = <String>[];
     for (final item in items) {
@@ -86,7 +125,6 @@ class TransactionService {
     return names;
   }
 
-  /// Maps a recent counterparty username to their IBAN for quick re-send.
   String? counterpartyIbanForUsername(
     List<TransactionItem> items,
     String username,
@@ -111,6 +149,10 @@ class TransactionService {
         : null;
     if (amount == null) return null;
 
+    final id = raw['id'] is int
+        ? raw['id'] as int
+        : int.tryParse('${raw['id']}') ?? 0;
+
     final createdAt = _parseCreatedAt(raw['createdAt']?.toString());
     final typeId = raw['type']?['id'];
     late String icon;
@@ -120,8 +162,6 @@ class TransactionService {
     String? counterpartyUsername;
     String? counterpartyIban;
 
-    // Backend type ids (DataInitializer): 1=Transfer, 2=Deposit, 3=Withdraw,
-    // 4=Top Up, 5=Payment.
     switch (typeId) {
       case 1:
         final fromUserId = raw['fromBankAccount']?['user']?['id']?.toString();
@@ -135,11 +175,13 @@ class TransactionService {
         isOutgoing = outgoing;
         if (outgoing) {
           counterpartyUsername =
-              raw['toBankAccount']?['user']?['username']?.toString();
+              raw['toBankAccount']?['user']?['username']?.toString() ??
+                  raw['toBankAccount']?['name']?.toString();
           counterpartyIban = raw['toBankAccount']?['iban']?.toString();
         } else {
           counterpartyUsername =
-              raw['fromBankAccount']?['user']?['username']?.toString();
+              raw['fromBankAccount']?['user']?['username']?.toString() ??
+                  raw['fromBankAccount']?['name']?.toString();
           counterpartyIban = raw['fromBankAccount']?['iban']?.toString();
         }
         break;
@@ -172,33 +214,33 @@ class TransactionService {
     }
 
     return TransactionItem(
+      id: id,
       iconUrl: icon,
       title: title,
       timeLabel: DateFormat("MMMM dd, yyyy 'at' hh:mm a").format(createdAt),
       value: '$sign ${formatCurrency(amount, symbol: '')}',
+      amount: amount,
       createdAt: createdAt,
       counterpartyUsername: counterpartyUsername,
       counterpartyIban: counterpartyIban,
       isOutgoing: isOutgoing,
+      description: raw['description']?.toString(),
+      referenceNumber: raw['referenceNumber']?.toString(),
+      typeId: typeId is int ? typeId : int.tryParse('$typeId'),
     );
   }
 
   DateTime _parseCreatedAt(String? createdAtString) {
     if (createdAtString == null || createdAtString.isEmpty) {
-      return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime.now();
     }
-
-    // Backend format: dd-MM-yyyy HH:mm:ss
     try {
       return DateFormat('dd-MM-yyyy HH:mm:ss').parse(createdAtString);
-    } catch (_) {
-      // Legacy / alternate formats.
-    }
-
+    } catch (_) {}
     try {
       return DateFormat('dd.MM.yyyy HH:mm:ss').parse(createdAtString);
     } catch (_) {
-      return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime.now();
     }
   }
 }
