@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/ui/pages/forgotPassword/change_password_internal.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_profile_menu_item.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:flutter_ewallet/utils/shared_user.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 
@@ -22,6 +23,13 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _fetchProfileImage();
+    AppEvents.instance.profileImageChanged.addListener(_fetchProfileImage);
+  }
+
+  @override
+  void dispose() {
+    AppEvents.instance.profileImageChanged.removeListener(_fetchProfileImage);
+    super.dispose();
   }
 
   void _logout() async {

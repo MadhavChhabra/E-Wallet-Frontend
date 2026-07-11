@@ -17,6 +17,9 @@ class AppEvents {
   /// Bumped when saved cards change (add/delete).
   final ValueNotifier<int> cardsChanged = ValueNotifier<int>(0);
 
+  /// Bumped when the profile picture changes, so every avatar refreshes.
+  final ValueNotifier<int> profileImageChanged = ValueNotifier<int>(0);
+
   void notifyWalletChanged() {
     walletChanged.value++;
     TransactionService.instance.invalidate();
@@ -24,4 +27,6 @@ class AppEvents {
   }
 
   void notifyCardsChanged() => cardsChanged.value++;
+
+  void notifyProfileImageChanged() => profileImageChanged.value++;
 }

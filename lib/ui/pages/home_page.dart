@@ -586,6 +586,13 @@ class _HomepageState extends State<Homepage> {
     super.initState();
     fetchData();
     _fetchProfileImage();
+    AppEvents.instance.profileImageChanged.addListener(_fetchProfileImage);
+  }
+
+  @override
+  void dispose() {
+    AppEvents.instance.profileImageChanged.removeListener(_fetchProfileImage);
+    super.dispose();
   }
 
   Future<void> _handleRefresh() async {

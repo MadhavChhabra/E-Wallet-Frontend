@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/image_service.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
+import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:image_picker/image_picker.dart';
 
 class EditProfileImagePage extends StatefulWidget {
@@ -42,6 +43,8 @@ class _EditProfileImagePageState extends State<EditProfileImagePage> {
     if (!mounted) return;
     if (ok) {
       await _fetchProfileImage();
+      // Tell every other avatar (home, profile) to refresh.
+      AppEvents.instance.notifyProfileImageChanged();
     }
     _snack(ok ? 'Image saved successfully' : 'Failed to save image',
         ok ? Colors.green : Colors.red);
