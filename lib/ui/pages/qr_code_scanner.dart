@@ -6,9 +6,9 @@ import 'package:flutter_ewallet/utils/iban_utils.dart';
 import 'package:flutter_ewallet/utils/theme.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-/// Scan-to-pay: reads a payment QR (containing an IBAN) using the device or
-/// browser camera via mobile_scanner, with manual IBAN entry as a fallback when
-/// the camera is unavailable or the user prefers to type.
+/// Scan-to-pay: reads a payment QR (containing an IBAN) with the device or
+/// browser camera, or falls back to manual IBAN entry in the panel below.
+/// Camera and manual entry live in separate regions so they never overlap.
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
 
@@ -61,145 +61,102 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cutOut = MediaQuery.of(context).size.width * 0.7;
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
+      appBar: AppBar(title: const Text('Scan & pay')),
+      body: Column(
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: _onDetect,
-            errorBuilder: (context, error, child) =>
-                _CameraUnavailable(controller: _manualIbanController,
-                    onContinue: _onManualContinue),
-          ),
-          // Scan frame
-          IgnorePointer(
-            child: Center(
-              child: Container(
-                width: cutOut,
-                height: cutOut,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 3),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-            ),
-          ),
-          // Top bar: close + torch
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // --- Camera region -------------------------------------------------
+          Expanded(
+            flex: 3,
+            child: Container(
+              color: Colors.black,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    color: whiteColor,
-                    iconSize: 28,
-                    onPressed: () => Navigator.of(context).pop(),
+                  MobileScanner(
+                    controller: _controller,
+                    onDetect: _onDetect,
+                    errorBuilder: (context, error, child) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'Camera unavailable. Allow camera access, or enter the IBAN below.',
+                          textAlign: TextAlign.center,
+                          style:
+                              whiteTextStyle.copyWith(fontSize: 14, height: 1.4),
+                        ),
+                      ),
+                    ),
                   ),
-                  ValueListenableBuilder<TorchState>(
-                    valueListenable: _controller.torchState,
-                    builder: (context, state, _) => IconButton(
-                      icon: Icon(state == TorchState.on
-                          ? Icons.flash_on
-                          : Icons.flash_off),
-                      color: whiteColor,
-                      iconSize: 28,
-                      onPressed: () => _controller.toggleTorch(),
+                  IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 3),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: ValueListenableBuilder<TorchState>(
+                      valueListenable: _controller.torchState,
+                      builder: (context, state, _) => IconButton(
+                        icon: Icon(state == TorchState.on
+                            ? Icons.flash_on
+                            : Icons.flash_off),
+                        color: whiteColor,
+                        onPressed: () => _controller.toggleTorch(),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Bottom: manual entry
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+          // --- Manual entry region (separate, never overlaps camera) --------
+          Expanded(
+            flex: 2,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(28),
+              width: double.infinity,
+              color: whiteColor,
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Point the camera at a payment QR',
+                      textAlign: TextAlign.center,
+                      style: blackTextStyle.copyWith(
+                          fontSize: 15, fontWeight: semiBold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'or enter the recipient IBAN',
+                      textAlign: TextAlign.center,
+                      style: greyTextStyle.copyWith(fontSize: 12),
+                    ),
+                    const SizedBox(height: 14),
+                    CustomTextField(
+                      title: 'IBAN',
+                      hintText: 'DE89 3704 0044 0532 0130 00',
+                      controller: _manualIbanController,
+                    ),
+                    const SizedBox(height: 14),
+                    CustomFilledButton(
+                      title: 'Continue to pay',
+                      onPressed: _onManualContinue,
+                    ),
+                  ],
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Point at a payment QR code',
-                    style:
-                        blackTextStyle.copyWith(fontSize: 16, fontWeight: semiBold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Or enter the IBAN manually',
-                      style: greyTextStyle.copyWith(fontSize: 13)),
-                  const SizedBox(height: 12),
-                  CustomTextField(
-                    title: 'IBAN',
-                    hintText: 'DE89370400440532013000',
-                    controller: _manualIbanController,
-                  ),
-                  const SizedBox(height: 12),
-                  CustomFilledButton(
-                    title: 'Continue to pay',
-                    onPressed: _onManualContinue,
-                  ),
-                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Shown when the camera can't be used (permission denied or unsupported):
-/// falls back to manual IBAN entry so scan-to-pay still works.
-class _CameraUnavailable extends StatelessWidget {
-  const _CameraUnavailable({required this.controller, required this.onContinue});
-
-  final TextEditingController controller;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: lightBackgroundColor,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Icon(Icons.no_photography_outlined, size: 48, color: greyColor),
-          const SizedBox(height: 16),
-          Text(
-            'Camera unavailable',
-            textAlign: TextAlign.center,
-            style: blackTextStyle.copyWith(fontSize: 20, fontWeight: semiBold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Grant camera access, or enter the recipient IBAN below.',
-            textAlign: TextAlign.center,
-            style: greyTextStyle.copyWith(fontSize: 14, height: 1.4),
-          ),
-          const SizedBox(height: 24),
-          CustomTextField(
-            title: 'Recipient IBAN',
-            hintText: 'DE89370400440532013000',
-            controller: controller,
-          ),
-          const SizedBox(height: 20),
-          CustomFilledButton(title: 'Continue to pay', onPressed: onContinue),
         ],
       ),
     );
