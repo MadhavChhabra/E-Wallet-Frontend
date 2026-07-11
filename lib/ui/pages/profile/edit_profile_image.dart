@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_ewallet/services/image_service.dart';
+import 'package:flutter_ewallet/ui/pages/profile/crop_image_page.dart';
 import 'package:flutter_ewallet/ui/widgets/custom_button.dart';
 import 'package:flutter_ewallet/utils/app_events.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,14 +27,21 @@ class _EditProfileImagePageState extends State<EditProfileImagePage> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      final bytes = await picked.readAsBytes();
-      if (!mounted) return;
-      setState(() {
-        _pickedFile = picked;
-        _image = MemoryImage(bytes);
-      });
-    }
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+
+    // Let the user crop (square/circular) before saving.
+    final Uint8List? cropped = await Navigator.of(context).push<Uint8List>(
+      MaterialPageRoute(builder: (_) => CropImagePage(bytes: bytes)),
+    );
+    if (cropped == null || !mounted) return;
+
+    setState(() {
+      _pickedFile = XFile.fromData(cropped,
+          name: 'avatar.jpg', mimeType: 'image/jpeg');
+      _image = MemoryImage(cropped);
+    });
   }
 
   Future<void> _saveImage() async {
