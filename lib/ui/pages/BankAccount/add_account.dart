@@ -61,8 +61,10 @@ class _AddAccountPageState extends State<AddAccountPage> {
         Fluttertoast.showToast(
             msg: response['message']?.toString() ?? 'Could not create account');
       }
-    } catch (_) {
-      Fluttertoast.showToast(msg: 'An error occurred. Please try again.');
+    } catch (e) {
+      // Surface the real reason (duplicate name, validation, session, etc.)
+      Fluttertoast.showToast(
+          msg: e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
