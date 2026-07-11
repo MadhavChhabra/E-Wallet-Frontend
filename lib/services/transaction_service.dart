@@ -165,24 +165,45 @@ class TransactionService {
     switch (typeId) {
       case 1:
         final fromUserId = raw['fromBankAccount']?['user']?['id']?.toString();
-        final outgoing =
-            currentUserId != null && fromUserId == currentUserId;
-        icon = outgoing
-            ? 'assets/ic_transaction_cat3.png'
-            : 'assets/ic_transaction_cat1.png';
-        sign = outgoing ? '-' : '+';
-        title = outgoing ? 'Money sent' : 'Money received';
-        isOutgoing = outgoing;
-        if (outgoing) {
+        final toUserId = raw['toBankAccount']?['user']?['id']?.toString();
+        final fromIban = raw['fromBankAccount']?['iban']?.toString();
+        final toIban = raw['toBankAccount']?['iban']?.toString();
+        final fromMine = currentUserId != null && fromUserId == currentUserId;
+        final toMine = currentUserId != null && toUserId == currentUserId;
+
+        if (fromMine && toMine && fromIban == toIban) {
+          // Same account credited (e.g. the opening/initial deposit).
+          icon = 'assets/ic_transaction_cat1.png';
+          sign = '+';
+          title = 'Money added';
+          isOutgoing = false;
+        } else if (fromMine && toMine) {
+          // Moved between the user's own accounts — net-neutral, not a spend.
+          icon = 'assets/ic_transaction_cat5.png';
+          sign = '';
+          title = 'Between your accounts';
+          isOutgoing = false;
+          counterpartyIban = toIban;
+        } else if (fromMine) {
+          // Sent to someone else — money leaves the wallet.
+          icon = 'assets/ic_transaction_cat3.png';
+          sign = '-';
+          title = 'Money sent';
+          isOutgoing = true;
           counterpartyUsername =
               raw['toBankAccount']?['user']?['username']?.toString() ??
                   raw['toBankAccount']?['name']?.toString();
-          counterpartyIban = raw['toBankAccount']?['iban']?.toString();
+          counterpartyIban = toIban;
         } else {
+          // Received from someone else — money enters the wallet.
+          icon = 'assets/ic_transaction_cat1.png';
+          sign = '+';
+          title = 'Money received';
+          isOutgoing = false;
           counterpartyUsername =
               raw['fromBankAccount']?['user']?['username']?.toString() ??
                   raw['fromBankAccount']?['name']?.toString();
-          counterpartyIban = raw['fromBankAccount']?['iban']?.toString();
+          counterpartyIban = fromIban;
         }
         break;
       case 2:
