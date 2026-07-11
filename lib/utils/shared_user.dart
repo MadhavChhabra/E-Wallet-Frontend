@@ -11,6 +11,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/http_service.dart';
+import '../services/transaction_service.dart';
+import '../services/wallet_account_service.dart';
 
 /// Shared Google Sign-In client.
 ///
@@ -213,6 +215,11 @@ class SharedUser {
       await _storage.deleteAll();
       _singleton.clearCachedUser();
       _singleton._isLoggedIn = false;
+      // Clear per-user in-memory caches so the next user never sees the
+      // previous user's accounts, transactions or avatar.
+      TransactionService.instance.invalidate();
+      WalletAccountService.instance.invalidate();
+      _singleton._profileImage = Image.asset('assets/placeholder_image.jpg');
       await _storage.write(key: _loggedInKey, value: 'false');
     } catch (_) {
       // Best-effort logout; storage may already be cleared.
