@@ -8,22 +8,23 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../../services/http_service.dart';
 
-const double kCardHeight = 225;
-const double kCardWidth = 356;
+const double kCardHeight = 210;
+const double kCardWidth = 340;
 
-const double kSpaceBetweenCard = 24;
-const double kSpaceBetweenUnselectCard = 32;
-const double kSpaceUnselectedCardToTop = 320;
+/// How much of each card peeks out below the one in front of it in the resting
+/// (Samsung-Wallet style) stacked deck.
+const double kCardPeek = 66;
 
-const Duration kAnimationDuration = Duration(milliseconds: 245);
+/// Where the selected card rests once lifted, and where the rest tuck below it.
+const double kTopPadding = 20;
+const double kSelectedTop = 24;
+const double kTuckedTop = 300;
+const double kTuckedGap = 30;
+
+const Duration kAnimationDuration = Duration(milliseconds: 320);
 
 class SelectCard extends StatefulWidget {
-  const SelectCard({
-    super.key,
-    this.space = kSpaceBetweenCard,
-  });
-
-  final double space;
+  const SelectCard({super.key});
 
   @override
   State<SelectCard> createState() => _SelectCardState();
@@ -31,7 +32,8 @@ class SelectCard extends StatefulWidget {
 
 class _SelectCardState extends State<SelectCard> {
   int? selectedCardIndex;
-  List<_SavedCardEntry> creditCards = [];
+  bool _flipped = false;
+  List<Map<String, dynamic>> _cards = [];
   bool _loading = true;
   bool _deleting = false;
 
@@ -53,53 +55,54 @@ class _SelectCardState extends State<SelectCard> {
       final response = await HttpService.getWithAuth('/cards');
       if (!mounted) return;
       if (response['message'] == 'Success') {
-        final List<Map<String, dynamic>> cardsData =
-            List<Map<String, dynamic>>.from(response['data']);
-
+        final cardsData = List<Map<String, dynamic>>.from(response['data']);
         setState(() {
-          creditCards = cardsData.asMap().entries.map((entry) {
-            final index = entry.key;
-            final cardData = entry.value;
-            return _SavedCardEntry(
-              cardData: cardData,
-              backgroundIndex: index,
-              onTap: () => setState(() => selectedCardIndex = index),
-            );
-          }).toList();
+          _cards = cardsData;
           _loading = false;
           if (selectedCardIndex != null &&
-              selectedCardIndex! >= creditCards.length) {
+              selectedCardIndex! >= _cards.length) {
             selectedCardIndex = null;
+            _flipped = false;
           }
         });
       } else {
         setState(() {
-          creditCards = [];
+          _cards = [];
           _loading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          creditCards = [];
+          _cards = [];
           _loading = false;
         });
       }
     }
   }
 
+  int? _cardId(Map<String, dynamic> card) {
+    final id = card['id'];
+    if (id is int) return id;
+    return int.tryParse('$id');
+  }
+
   Future<void> _deleteSelected() async {
     if (selectedCardIndex == null || _deleting) return;
-    final card = creditCards[selectedCardIndex!];
-    final id = card.cardId;
+    final card = _cards[selectedCardIndex!];
+    final id = _cardId(card);
     if (id == null) return;
+
+    final number = CardDisplay.number(card);
+    final last4 =
+        number.length >= 4 ? number.substring(number.length - 4) : number;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove card?'),
         content: Text(
-          'Remove ${CardDisplay.holder(card.cardData)} ending ${CardDisplay.number(card.cardData).substring(CardDisplay.number(card.cardData).length - 4)}?',
+          'Remove ${CardDisplay.holder(card)} ending $last4?',
         ),
         actions: [
           TextButton(
@@ -120,7 +123,10 @@ class _SelectCardState extends State<SelectCard> {
     if (!mounted) return;
     setState(() {
       _deleting = false;
-      if (ok) selectedCardIndex = null;
+      if (ok) {
+        selectedCardIndex = null;
+        _flipped = false;
+      }
     });
     if (ok) {
       Fluttertoast.showToast(msg: 'Card removed');
@@ -130,67 +136,68 @@ class _SelectCardState extends State<SelectCard> {
     }
   }
 
-  double _getCardTopPosititoned(int index, isSelected) {
-    if (selectedCardIndex != null) {
-      if (isSelected) {
-        return widget.space;
-      } else {
-        return kSpaceUnselectedCardToTop +
-            toUnselectedCardPositionIndex(index) * kSpaceBetweenUnselectCard;
-      }
-    } else {
-      return widget.space + index * kCardHeight + index * widget.space;
-    }
-  }
-
-  double _getCardScale(int index, isSelected) {
-    if (selectedCardIndex != null) {
-      if (isSelected) {
-        return 1.0;
-      } else {
-        int totalUnselectCard = creditCards.length - 1;
-        return 1.0 -
-            (totalUnselectCard - toUnselectedCardPositionIndex(index) - 1) *
-                0.05;
-      }
-    } else {
-      return 1.0;
-    }
-  }
-
-  void unSelectCard() {
+  void _onTapCard(int index) {
     setState(() {
-      selectedCardIndex = null;
+      if (selectedCardIndex == index) {
+        // Tapping the already-lifted card flips it over.
+        _flipped = !_flipped;
+      } else {
+        selectedCardIndex = index;
+        _flipped = false;
+      }
     });
   }
 
-  int toUnselectedCardPositionIndex(int indexInAllList) {
-    if (selectedCardIndex != null) {
-      if (indexInAllList < selectedCardIndex!) {
-        return indexInAllList;
-      } else {
-        return indexInAllList - 1;
-      }
-    } else {
-      throw 'Wrong usage';
-    }
+  void _unselect() {
+    setState(() {
+      selectedCardIndex = null;
+      _flipped = false;
+    });
   }
 
-  double totalHeightTotalCard() {
-    if (selectedCardIndex == null) {
-      final totalCard = creditCards.length;
-      return widget.space * (totalCard + 1) + kCardHeight * totalCard;
-    } else {
-      return kSpaceUnselectedCardToTop +
-          kCardHeight +
-          (creditCards.length - 2) * kSpaceBetweenUnselectCard +
-          kSpaceBetweenCard;
+  /// Index of an unselected card within the tucked stack (0-based, skipping the
+  /// selected card).
+  int _tuckedPositionIndex(int indexInAllList) {
+    if (indexInAllList < selectedCardIndex!) return indexInAllList;
+    return indexInAllList - 1;
+  }
+
+  double _cardTop(int index, bool isSelected) {
+    if (selectedCardIndex != null) {
+      if (isSelected) return kSelectedTop;
+      return kTuckedTop + _tuckedPositionIndex(index) * kTuckedGap;
     }
+    // Resting deck: each card overlaps the one before it.
+    return kTopPadding + index * kCardPeek;
+  }
+
+  double _cardScale(int index, bool isSelected) {
+    if (selectedCardIndex != null && !isSelected) {
+      // Tucked cards shrink slightly with depth.
+      return 0.9 - _tuckedPositionIndex(index) * 0.015;
+    }
+    return 1.0;
+  }
+
+  double _totalHeight() {
+    final n = _cards.length;
+    if (selectedCardIndex == null) {
+      return kTopPadding + (n - 1) * kCardPeek + kCardHeight + 40;
+    }
+    const selectedExtent = kSelectedTop + kCardHeight;
+    final tuckedExtent =
+        kTuckedTop + (n - 2).clamp(0, n) * kTuckedGap + kCardHeight;
+    return (selectedExtent > tuckedExtent ? selectedExtent : tuckedExtent) + 40;
   }
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+    // Keep the cards from spanning the full width — leaves breathing room and
+    // makes the deck read as a stack of distinct cards.
+    final cardWidth = kCardWidth < mediaQuery.size.width - 40
+        ? kCardWidth
+        : mediaQuery.size.width - 40;
 
     return Scaffold(
       appBar: AppBar(
@@ -220,7 +227,7 @@ class _SelectCardState extends State<SelectCard> {
           : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-          : creditCards.isEmpty
+          : _cards.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -234,32 +241,36 @@ class _SelectCardState extends State<SelectCard> {
               : SizedBox.expand(
                   child: SingleChildScrollView(
                     child: Stack(
-                      alignment: Alignment.center,
+                      alignment: Alignment.topCenter,
                       children: [
                         AnimatedContainer(
                           duration: kAnimationDuration,
-                          height: totalHeightTotalCard(),
+                          height: _totalHeight(),
                           width: mediaQuery.size.width,
                         ),
-                        for (int i = 0; i < creditCards.length; i++)
-                          AnimatedPositioned(
-                            top: _getCardTopPosititoned(
-                                i, i == selectedCardIndex),
-                            duration: kAnimationDuration,
-                            child: AnimatedScale(
-                              scale: _getCardScale(i, i == selectedCardIndex),
-                              duration: kAnimationDuration,
-                              child: GestureDetector(
-                                onTap: creditCards[i].onTap,
-                                child: creditCards[i],
-                              ),
-                            ),
-                          ),
+                        // Tap/drag empty space to dismiss the lifted card. Sits
+                        // below the cards so they still receive their own taps.
                         if (selectedCardIndex != null)
                           Positioned.fill(
                             child: GestureDetector(
-                              onVerticalDragEnd: (_) => unSelectCard(),
-                              onVerticalDragStart: (_) => unSelectCard(),
+                              behavior: HitTestBehavior.translucent,
+                              onTap: _unselect,
+                              onVerticalDragStart: (_) => _unselect(),
+                            ),
+                          ),
+                        for (int i = 0; i < _cards.length; i++)
+                          AnimatedPositioned(
+                            top: _cardTop(i, i == selectedCardIndex),
+                            duration: kAnimationDuration,
+                            curve: Curves.easeOutCubic,
+                            child: AnimatedScale(
+                              scale: _cardScale(i, i == selectedCardIndex),
+                              duration: kAnimationDuration,
+                              curve: Curves.easeOutCubic,
+                              child: GestureDetector(
+                                onTap: () => _onTapCard(i),
+                                child: _buildCard(i, cardWidth),
+                              ),
                             ),
                           ),
                       ],
@@ -268,38 +279,35 @@ class _SelectCardState extends State<SelectCard> {
                 ),
     );
   }
-}
 
-class _SavedCardEntry extends StatelessWidget {
-  const _SavedCardEntry({
-    required this.cardData,
-    required this.onTap,
-    required this.backgroundIndex,
-  });
+  Widget _buildCard(int index, double cardWidth) {
+    final card = _cards[index];
+    final palette =
+        CardPalette.forCard(card['brand']?.toString(), index);
+    final holder = CardDisplay.holder(card);
+    final number = CardDisplay.number(card);
+    final expiry = CardDisplay.expiry(card);
+    final brand = card['brand']?.toString();
 
-  final Map<String, dynamic> cardData;
-  final VoidCallback onTap;
-  final int backgroundIndex;
-
-  int? get cardId {
-    final id = cardData['id'];
-    if (id is int) return id;
-    return int.tryParse('$id');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: GestureDetector(
-        onTap: onTap,
-        child: SavedCardWidget(
-          cardHolderName: CardDisplay.holder(cardData),
-          maskedNumber: CardDisplay.number(cardData),
-          expiryDate: CardDisplay.expiry(cardData),
-          brand: cardData['brand']?.toString(),
-          height: kCardHeight,
-          width: kCardWidth,
-        ),
+    return FlipCard(
+      showBack: index == selectedCardIndex && _flipped,
+      front: SavedCardWidget(
+        cardHolderName: holder,
+        maskedNumber: number,
+        expiryDate: expiry,
+        brand: brand,
+        palette: palette,
+        height: kCardHeight,
+        width: cardWidth,
+      ),
+      back: SavedCardBack(
+        cardHolderName: holder,
+        maskedNumber: number,
+        expiryDate: expiry,
+        brand: brand,
+        palette: palette,
+        height: kCardHeight,
+        width: cardWidth,
       ),
     );
   }

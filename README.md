@@ -1,9 +1,11 @@
 # E-Wallet — Flutter App
 
-A cross-platform digital wallet client for the [E-Wallet backend](../E-Wallet-Backend).
+A cross-platform digital wallet client for the [E-Wallet backend](https://github.com/MadhavChhabra/E-Wallet-Backend).
 Users can register, log in, manage bank accounts, transfer/deposit/withdraw,
 save cards, reset their password via OTP, and **top up their wallet through
 Razorpay** (test mode).
+
+**Live demo:** [madhavchhabra.github.io/E-Wallet-Frontend](https://madhavchhabra.github.io/E-Wallet-Frontend/). Tap "Explore Live Demo" for a pre-filled account; Razorpay runs in test mode, so no real money moves.
 
 ## Tech
 
