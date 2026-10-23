@@ -237,15 +237,15 @@ class _AccountsWidgetState extends State<AccountsWidget> {
       final List<dynamic> accounts =
           (response['data'] as List<dynamic>?) ?? <dynamic>[];
 
-      // A brand-new user has no wallet yet — auto-provision a funded one so the
-      // dashboard is immediately usable (transfers, top-up, cards). Done once.
+      // A brand-new user has no wallet yet — auto-provision one so the dashboard
+      // is immediately usable. It opens empty (the server sets every opening
+      // balance); the user funds it with a top-up. Done once.
       if (accounts.isEmpty && !_provisioned && userId != null) {
         _provisioned = true;
         try {
           await HttpService.postWithAuth('/bank-accounts', {
             'name': 'My Wallet',
             'iban': generateIban(),
-            'balance': 5000,
             'userId': userId,
           });
           return fetchAccountData();

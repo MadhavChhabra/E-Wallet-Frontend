@@ -48,7 +48,6 @@ class _AddAccountPageState extends State<AddAccountPage> {
       final response = await HttpService.postWithAuth('/bank-accounts', {
         'name': name,
         'iban': generateIban(),
-        'balance': 0,
         'userId': user.id,
       });
 

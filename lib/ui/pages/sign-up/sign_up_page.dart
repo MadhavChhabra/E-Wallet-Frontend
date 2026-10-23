@@ -59,7 +59,6 @@ class _SignUpPageState extends State<SignUpPage> {
         'email': email,
         'username': username,
         'password': password,
-        'roles': ['ROLE_USER'],
       });
 
       if (!mounted) return;
